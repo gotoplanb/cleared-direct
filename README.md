@@ -4,6 +4,8 @@ Web-based instrument flying proficiency game for GA pilots. Practice radio comms
 
 **Live:** https://cleared-direct-ec2f6fee8c5e.herokuapp.com/
 
+<img src="docs/qr-code.png" alt="QR code to live app" width="200">
+
 ## Local Development
 
 ```bash
