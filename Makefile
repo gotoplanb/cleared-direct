@@ -1,5 +1,6 @@
 PYTHON = .venv/bin/python
 PIP = .venv/bin/pip
+GUNICORN = .venv/bin/gunicorn
 PORT ?= 8301
 
 # ── Setup ─────────────────────────────────────────────
@@ -45,7 +46,15 @@ flush-sessions:  ## Flush only session data, keep scenarios
 # ── Server ────────────────────────────────────────────
 
 .PHONY: server
-server:  ## Run dev server on PORT (default 8301)
+server:  ## Run gunicorn dev server on PORT (default 8301)
+	$(GUNICORN) config.wsgi:application --bind 127.0.0.1:$(PORT) --workers 2 --access-logfile - --reload
+
+.PHONY: server-otel
+server-otel:  ## Run gunicorn with OTel export to local Alloy
+	OTEL_ENABLED=true $(GUNICORN) config.wsgi:application --bind 127.0.0.1:$(PORT) --workers 2 --access-logfile - --reload
+
+.PHONY: server-dev
+server-dev:  ## Run Django runserver (no gunicorn, for debugging)
 	$(PYTHON) manage.py runserver $(PORT)
 
 .PHONY: shell

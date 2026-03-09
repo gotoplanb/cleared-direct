@@ -13,6 +13,7 @@ SECRET_KEY = os.environ.get(
 DEBUG = os.environ.get("DJANGO_DEBUG", "true").lower() == "true"
 
 ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",") + [
+    "host.docker.internal",
     ".ngrok-free.dev",
     ".herokuapp.com",
 ]

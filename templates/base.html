@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
     <title>{% block title %}IFR Trainer{% endblock %}</title>
     <script src="https://unpkg.com/htmx.org@2.0.4"></script>
     <script defer src="https://unpkg.com/alpinejs@3.14.8/dist/cdn.min.js"></script>
@@ -21,11 +21,13 @@
             --border: #1e2830;
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body { overflow: hidden; overscroll-behavior: none; }
         body {
             font-family: 'Courier New', monospace;
             background: var(--bg-primary);
             color: var(--text-primary);
             min-height: 100vh;
+            min-height: 100dvh;
         }
         {% block extra_css %}{% endblock %}
     </style>
