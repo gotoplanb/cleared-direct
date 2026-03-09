@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cleared Direct</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #000;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Share Tech Mono', monospace;
+  }
+
+  canvas {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: 0;
+  }
+
+  .screen {
+    position: relative;
+    z-index: 10;
+    width: min(420px, 95vw);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+  }
+
+  /* Scanline overlay */
+  .scanlines {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: repeating-linear-gradient(
+      to bottom,
+      transparent 0px,
+      transparent 3px,
+      rgba(0,0,0,0.18) 3px,
+      rgba(0,0,0,0.18) 4px
+    );
+    z-index: 5;
+    pointer-events: none;
+  }
+
+  /* CRT vignette */
+  .vignette {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.75) 100%);
+    z-index: 6;
+    pointer-events: none;
+  }
+
+  /* Horizon line */
+  .horizon {
+    width: 100%;
+    height: 1px;
+    background: linear-gradient(to right, transparent, #00ff9d33, #00ff9d88, #00ff9d33, transparent);
+    margin-bottom: 32px;
+    opacity: 0;
+    animation: fadeIn 1s ease 0.5s forwards;
+  }
+
+  /* Top data strip */
+  .data-strip {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    color: #00ff9d66;
+    letter-spacing: 0.15em;
+    margin-bottom: 8px;
+    opacity: 0;
+    animation: fadeIn 0.8s ease 0.8s forwards;
+  }
+
+  /* PFD mini display */
+  .pfd-mini {
+    width: 100%;
+    height: 90px;
+    position: relative;
+    margin-bottom: 28px;
+    opacity: 0;
+    animation: fadeIn 1s ease 1s forwards;
+  }
+
+  /* Title block */
+  .title-block {
+    text-align: center;
+    margin-bottom: 36px;
+  }
+
+  .subtitle {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.4em;
+    color: #00ff9d88;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    opacity: 0;
+    animation: fadeIn 0.6s ease 1.4s forwards;
+  }
+
+  .title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: clamp(32px, 9vw, 52px);
+    font-weight: 900;
+    color: #fff;
+    letter-spacing: 0.06em;
+    line-height: 1;
+    text-shadow:
+      0 0 20px rgba(0, 255, 157, 0.6),
+      0 0 60px rgba(0, 255, 157, 0.2);
+    opacity: 0;
+    animation: titleReveal 1s ease 1.6s forwards;
+    position: relative;
+  }
+
+  .title-accent {
+    color: #00ff9d;
+    text-shadow:
+      0 0 15px rgba(0, 255, 157, 1),
+      0 0 40px rgba(0, 255, 157, 0.5);
+  }
+
+  .tagline {
+    font-size: 10px;
+    letter-spacing: 0.25em;
+    color: #ffffff44;
+    margin-top: 10px;
+    text-transform: uppercase;
+    opacity: 0;
+    animation: fadeIn 0.8s ease 2.2s forwards;
+  }
+
+  .tagline .typewriter-text {
+    visibility: hidden;
+  }
+
+  .tagline.typing .typewriter-text {
+    visibility: visible;
+  }
+
+  /* Separator */
+  .sep {
+    width: 100%;
+    height: 1px;
+    background: linear-gradient(to right, transparent, #00ff9d44, transparent);
+    margin-bottom: 32px;
+    opacity: 0;
+    animation: fadeIn 0.8s ease 2.4s forwards;
+  }
+
+  /* Difficulty selection */
+  .difficulty-label {
+    font-size: 10px;
+    letter-spacing: 0.3em;
+    color: #00ff9d66;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+    opacity: 0;
+    animation: fadeIn 0.6s ease 2.6s forwards;
+  }
+
+  .difficulty-grid {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 28px;
+    opacity: 0;
+    animation: fadeIn 0.8s ease 2.8s forwards;
+  }
+
+  .diff-btn {
+    background: transparent;
+    border: 1px solid #00ff9d33;
+    color: #00ff9d99;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    padding: 12px 8px;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.2s ease;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .diff-btn::before {
+    content: '';
+    position: absolute;
+    top: 0; left: -100%;
+    width: 100%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(0,255,157,0.08), transparent);
+    transition: left 0.3s ease;
+  }
+
+  .diff-btn:hover::before { left: 100%; }
+
+  .diff-btn:hover {
+    border-color: #00ff9daa;
+    color: #00ff9d;
+    background: rgba(0,255,157,0.05);
+    box-shadow: 0 0 12px rgba(0,255,157,0.15), inset 0 0 12px rgba(0,255,157,0.05);
+  }
+
+  .diff-btn:hover .diff-number { color: #fff; }
+
+  .diff-number {
+    display: block;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    color: #ffffff33;
+    margin-bottom: 2px;
+    transition: color 0.2s;
+  }
+
+  .diff-name {
+    display: block;
+    font-size: 9px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+  }
+
+  /* Bottom strip */
+  .bottom-strip {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    font-size: 9px;
+    color: #ffffff22;
+    letter-spacing: 0.12em;
+    opacity: 0;
+    animation: fadeIn 0.6s ease 3.2s forwards;
+  }
+
+  /* Blinking cursor */
+  .cursor {
+    display: inline-block;
+    width: 8px;
+    height: 12px;
+    background: #00ff9d;
+    vertical-align: middle;
+    animation: blink 1s step-end infinite;
+    margin-left: 4px;
+  }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes titleReveal {
+    0%   { opacity: 0; letter-spacing: 0.25em; filter: blur(8px); }
+    100% { opacity: 1; letter-spacing: 0.06em; filter: blur(0); }
+  }
+
+  /* Flicker on load */
+  @keyframes flicker {
+    0%   { opacity: 0; }
+    10%  { opacity: 0.8; }
+    12%  { opacity: 0.1; }
+    14%  { opacity: 0.9; }
+    16%  { opacity: 0.3; }
+    18%  { opacity: 1; }
+    100% { opacity: 1; }
+  }
+
+  .screen { animation: flicker 0.4s ease forwards; }
+
+  /* ===== STUB ANIMATIONS ===== */
+
+  /* 1. Title glitch — periodic CRT distortion */
+  @keyframes glitch {
+    0%, 93%, 100% {
+      transform: translate(0);
+      text-shadow:
+        0 0 20px rgba(0, 255, 157, 0.6),
+        0 0 60px rgba(0, 255, 157, 0.2);
+    }
+    94% {
+      transform: translate(-3px, 1px);
+      text-shadow:
+        3px 0 #ff003c,
+        -3px 0 #00f0ff,
+        0 0 20px rgba(0, 255, 157, 0.6);
+    }
+    95% {
+      transform: translate(2px, -1px);
+      text-shadow:
+        -2px 0 #ff003c,
+        2px 0 #00f0ff,
+        0 0 20px rgba(0, 255, 157, 0.6);
+    }
+    96% {
+      transform: translate(0);
+      text-shadow:
+        0 0 20px rgba(0, 255, 157, 0.6),
+        0 0 60px rgba(0, 255, 157, 0.2);
+    }
+  }
+
+  .title.animated {
+    animation: titleReveal 1s ease 1.6s forwards, glitch 8s ease-in-out 3.5s infinite;
+  }
+
+  /* 2. Accent pulse — breathing glow on the green title word */
+  @keyframes accentPulse {
+    0%, 100% {
+      text-shadow:
+        0 0 15px rgba(0, 255, 157, 1),
+        0 0 40px rgba(0, 255, 157, 0.5);
+    }
+    50% {
+      text-shadow:
+        0 0 25px rgba(0, 255, 157, 1),
+        0 0 60px rgba(0, 255, 157, 0.7),
+        0 0 100px rgba(0, 255, 157, 0.3);
+    }
+  }
+
+  .title-accent {
+    animation: accentPulse 4s ease-in-out 3s infinite;
+  }
+
+  /* 3. Horizon line pulse */
+  @keyframes horizonPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  .horizon {
+    animation: fadeIn 1s ease 0.5s forwards, horizonPulse 6s ease-in-out 2s infinite;
+  }
+
+  /* 4. Scanline drift — subtle vertical crawl */
+  @keyframes scanlineDrift {
+    from { background-position: 0 0; }
+    to   { background-position: 0 4px; }
+  }
+
+  .scanlines {
+    animation: scanlineDrift 0.5s linear infinite;
+  }
+
+  /* 5. Data-strip value flicker */
+  @keyframes dataFlicker {
+    0%, 97%, 100% { opacity: 1; }
+    98% { opacity: 0.3; }
+    99% { opacity: 0.8; }
+  }
+
+  .data-strip span {
+    animation: dataFlicker 5s step-end infinite;
+  }
+  .data-strip span:nth-child(2) { animation-delay: 1.8s; }
+  .data-strip span:nth-child(3) { animation-delay: 3.6s; }
+
+  /* 6. Difficulty button stagger entrance */
+  @keyframes slideInBtn {
+    from { opacity: 0; transform: translateX(-12px); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+
+  .diff-btn {
+    opacity: 0;
+  }
+
+  .difficulty-grid.revealed .diff-btn {
+    animation: slideInBtn 0.4s ease forwards;
+  }
+  .difficulty-grid.revealed .diff-btn:nth-child(1) { animation-delay: 2.9s; }
+  .difficulty-grid.revealed .diff-btn:nth-child(2) { animation-delay: 3.05s; }
+  .difficulty-grid.revealed .diff-btn:nth-child(3) { animation-delay: 3.2s; }
+  .difficulty-grid.revealed .diff-btn:nth-child(4) { animation-delay: 3.35s; }
+
+  /* 7. Bottom strip subtle scroll */
+  @keyframes bottomFade {
+    0%, 90%, 100% { opacity: 1; }
+    95% { opacity: 0.4; }
+  }
+
+  .bottom-strip span {
+    animation: bottomFade 12s ease infinite;
+  }
+  .bottom-strip span:nth-child(2) { animation-delay: 4s; }
+  .bottom-strip span:nth-child(3) { animation-delay: 8s; }
+</style>
+</head>
+<body>
+
+<canvas id="bg"></canvas>
+
+<div class="scanlines"></div>
+<div class="vignette"></div>
+
+<div class="screen">
+  <div class="data-strip">
+    <span id="time-display">----Z</span>
+    <span id="nav-freq">N----</span>
+    <span>KGNV &rsaquo; KOJM</span>
+  </div>
+
+  <div class="pfd-mini">
+    <svg id="pfd" width="100%" height="90" viewBox="0 0 420 90" preserveAspectRatio="xMidYMid meet">
+      <defs>
+        <clipPath id="pfd-clip">
+          <rect x="10" y="5" width="400" height="80" rx="4"/>
+        </clipPath>
+        <linearGradient id="skyGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#1a3a5c"/>
+          <stop offset="100%" stop-color="#2563a0"/>
+        </linearGradient>
+        <linearGradient id="groundGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#5c3a1a"/>
+          <stop offset="100%" stop-color="#3a2010"/>
+        </linearGradient>
+      </defs>
+
+      <!-- Sky -->
+      <rect x="10" y="5" width="400" height="80" rx="4" fill="url(#skyGrad)" clip-path="url(#pfd-clip)"/>
+      <!-- Ground (animated roll) -->
+      <g id="horizon-group" clip-path="url(#pfd-clip)">
+        <rect x="-50" y="45" width="520" height="50" fill="url(#groundGrad)"/>
+        <line x1="-50" y1="45" x2="520" y2="45" stroke="#00ff9d" stroke-width="1.5" opacity="0.8"/>
+        <line x1="150" y1="35" x2="270" y2="35" stroke="white" stroke-width="0.8" opacity="0.4"/>
+        <line x1="170" y1="25" x2="250" y2="25" stroke="white" stroke-width="0.8" opacity="0.3"/>
+        <line x1="150" y1="55" x2="270" y2="55" stroke="white" stroke-width="0.8" opacity="0.4"/>
+      </g>
+
+      <!-- Aircraft reference symbol -->
+      <g transform="translate(210, 45)">
+        <line x1="-35" y1="0" x2="-15" y2="0" stroke="#ffcc00" stroke-width="2.5"/>
+        <line x1="15" y1="0" x2="35" y2="0" stroke="#ffcc00" stroke-width="2.5"/>
+        <circle cx="0" cy="0" r="4" fill="none" stroke="#ffcc00" stroke-width="2"/>
+        <line x1="-5" y1="0" x2="5" y2="0" stroke="#ffcc00" stroke-width="2"/>
+      </g>
+
+      <!-- Airspeed tape (left) -->
+      <rect x="10" y="5" width="48" height="80" rx="4" fill="rgba(0,0,0,0.6)"/>
+      <text id="ias-val" x="34" y="49" text-anchor="middle" fill="#00ff9d" font-family="Share Tech Mono" font-size="14" font-weight="bold">148</text>
+      <line x1="54" y1="35" x2="58" y2="35" stroke="#00ff9d44" stroke-width="1"/>
+      <line x1="54" y1="45" x2="60" y2="45" stroke="#00ff9d88" stroke-width="1.5"/>
+      <line x1="54" y1="55" x2="58" y2="55" stroke="#00ff9d44" stroke-width="1"/>
+
+      <!-- Altitude tape (right) -->
+      <rect x="362" y="5" width="48" height="80" rx="4" fill="rgba(0,0,0,0.6)"/>
+      <text id="alt-val" x="386" y="49" text-anchor="middle" fill="#00ff9d" font-family="Share Tech Mono" font-size="11" font-weight="bold">3420</text>
+      <line x1="362" y1="35" x2="358" y2="35" stroke="#00ff9d44" stroke-width="1"/>
+      <line x1="362" y1="45" x2="356" y2="45" stroke="#00ff9d88" stroke-width="1.5"/>
+      <line x1="362" y1="55" x2="358" y2="55" stroke="#00ff9d44" stroke-width="1"/>
+
+      <!-- VSI indicator -->
+      <rect x="406" y="5" width="4" height="80" rx="2" fill="rgba(0,0,0,0.5)"/>
+      <rect id="vsi-bar" x="406" y="25" width="4" height="20" rx="1" fill="#00ff9d88"/>
+
+      <!-- Heading strip bottom -->
+      <rect x="155" y="72" width="110" height="16" rx="2" fill="rgba(0,0,0,0.7)"/>
+      <text id="hdg-val" x="210" y="84" text-anchor="middle" fill="#00ff9d" font-family="Share Tech Mono" font-size="11">280&deg;</text>
+
+      <!-- AP mode strip top -->
+      <rect x="155" y="5" width="110" height="14" rx="2" fill="rgba(0,20,10,0.8)"/>
+      <text x="172" y="15" fill="#00ccff" font-family="Share Tech Mono" font-size="8">HDG</text>
+      <text x="198" y="15" fill="#00ccff" font-family="Share Tech Mono" font-size="8">NAV</text>
+      <text x="224" y="15" fill="#00ff9dcc" font-family="Share Tech Mono" font-size="8">VS</text>
+
+      <!-- Border -->
+      <rect x="10" y="5" width="400" height="80" rx="4" fill="none" stroke="#00ff9d33" stroke-width="1"/>
+    </svg>
+  </div>
+
+  <div class="horizon"></div>
+
+  <div class="title-block">
+    <div class="subtitle">IFR Proficiency Trainer</div>
+    <div class="title animated">CLEARED<br><span class="title-accent">DIRECT</span></div>
+    <div class="tagline" id="tagline"><span class="typewriter-text" id="typewriter-target">Instrument &middot; Emergency &middot; Decision</span><span class="cursor"></span></div>
+  </div>
+
+  <div class="sep"></div>
+
+  <div class="difficulty-label">Select Difficulty</div>
+
+  <div class="difficulty-grid revealed" id="diff-grid">
+    <button class="diff-btn">
+      <span class="diff-number">01</span>
+      <span class="diff-name">Student Pilot</span>
+    </button>
+    <button class="diff-btn">
+      <span class="diff-number">02</span>
+      <span class="diff-name">Private Pilot</span>
+    </button>
+    <button class="diff-btn">
+      <span class="diff-number">03</span>
+      <span class="diff-name">IFR Proficiency</span>
+    </button>
+    <button class="diff-btn">
+      <span class="diff-number">04</span>
+      <span class="diff-name">Checkride Hell</span>
+    </button>
+  </div>
+
+  <div class="bottom-strip">
+    <span>V1.0.0</span>
+    <span>ZERO MISSION LLC</span>
+    <span>&copy; 2025</span>
+  </div>
+</div>
+
+<script>
+  // ── Live zulu time ──
+  function updateTime() {
+    const now = new Date();
+    const h = String(now.getUTCHours()).padStart(2, '0');
+    const m = String(now.getUTCMinutes()).padStart(2, '0');
+    document.getElementById('time-display').textContent = h + m + 'Z';
+  }
+  updateTime();
+  setInterval(updateTime, 1000);
+
+  // ── Canvas background ──
+  const canvas = document.getElementById('bg');
+  const ctx = canvas.getContext('2d');
+
+  function resize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  // Stars
+  const stars = Array.from({ length: 120 }, () => ({
+    x: Math.random(),
+    y: Math.random(),
+    r: Math.random() * 1.2 + 0.2,
+    speed: Math.random() * 0.00008 + 0.00002,
+    opacity: Math.random() * 0.6 + 0.1
+  }));
+
+  // Moving aircraft silhouette
+  const plane = { x: -0.15, y: 0.72, speed: 0.00015 };
+
+  function drawPlane(x, y, scale) {
+    const W = canvas.width, H = canvas.height;
+    const px = x * W, py = y * H;
+    const s = scale * Math.min(W, H) * 0.0007;
+
+    ctx.save();
+    ctx.translate(px, py);
+    ctx.scale(s, s);
+    ctx.fillStyle = 'rgba(0,255,157,0.12)';
+    ctx.strokeStyle = 'rgba(0,255,157,0.25)';
+    ctx.lineWidth = 1.5 / s;
+
+    // Fuselage
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 120, 12, 0, 0, Math.PI * 2);
+    ctx.fill(); ctx.stroke();
+
+    // Main wing
+    ctx.beginPath();
+    ctx.moveTo(-20, 0); ctx.lineTo(-60, 55); ctx.lineTo(-80, 55); ctx.lineTo(-40, 0);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(-20, 0); ctx.lineTo(-60, -55); ctx.lineTo(-80, -55); ctx.lineTo(-40, 0);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+
+    // Tail
+    ctx.beginPath();
+    ctx.moveTo(80, 0); ctx.lineTo(110, -30); ctx.lineTo(120, -30); ctx.lineTo(100, 0);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+
+    // Horizontal stab
+    ctx.beginPath();
+    ctx.moveTo(80, 0); ctx.lineTo(100, 20); ctx.lineTo(115, 20); ctx.lineTo(95, 0);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(80, 0); ctx.lineTo(100, -20); ctx.lineTo(115, -20); ctx.lineTo(95, 0);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+
+    // Nose
+    ctx.beginPath();
+    ctx.moveTo(110, 0); ctx.lineTo(140, 0);
+    ctx.strokeStyle = 'rgba(0,255,157,0.35)';
+    ctx.lineWidth = 2 / s;
+    ctx.stroke();
+
+    ctx.restore();
+  }
+
+  // ── Flight state ──
+  let altitude = 3420;
+  let ias = 148;
+  const climbFpm = 150;
+  const iasTarget = 150;
+  let lastTs = null;
+
+  let altDisplay = Math.round(altitude / 20) * 20;
+  let altAccum = 0;
+
+  // Heading sweep state
+  let heading = 280;
+  const headingTarget = 285;      // slow turn to intercept
+  const headingRate = 0.3;        // degrees per second — standard rate would be 3, this is gentle
+
+  // Roll oscillation state
+  let rollAngle = 0;
+  const rollAmplitude = 3;        // degrees — subtle wing rock
+  const rollPeriod = 7;           // seconds per full cycle
+
+  const horizonGroup = document.getElementById('horizon-group');
+  const altVal = document.getElementById('alt-val');
+  const iasVal = document.getElementById('ias-val');
+  const vsiBar = document.getElementById('vsi-bar');
+  const hdgVal = document.getElementById('hdg-val');
+
+  // Pitch up for climb
+  const CLIMB_PITCH_PX = 8;
+
+  // VSI bar position
+  const vsiCenterY = 45;
+  const vsiRange = 35;
+  const vsiFraction = Math.min(climbFpm / 2000, 1);
+  const vsiY = vsiCenterY - vsiFraction * vsiRange;
+  const vsiH = vsiCenterY - vsiY;
+  vsiBar.setAttribute('y', vsiY);
+  vsiBar.setAttribute('height', vsiH);
+
+  // ── Typewriter effect for tagline ──
+  (function initTypewriter() {
+    const tagline = document.getElementById('tagline');
+    const target = document.getElementById('typewriter-target');
+    const fullText = target.textContent;
+    target.textContent = '';
+    let charIndex = 0;
+
+    // Start typing after tagline fade-in (delay 2.2s + 0.8s duration)
+    setTimeout(() => {
+      tagline.classList.add('typing');
+      const typeInterval = setInterval(() => {
+        if (charIndex < fullText.length) {
+          target.textContent = fullText.slice(0, charIndex + 1);
+          charIndex++;
+        } else {
+          clearInterval(typeInterval);
+        }
+      }, 65);
+    }, 3100);
+  })();
+
+  // ── NAV frequency cycle — subtle realism ──
+  const navFreqs = ['N113.0', 'N110.6', 'N116.8', 'N109.2'];
+  let navIdx = 0;
+  const navEl = document.getElementById('nav-freq');
+  setInterval(() => {
+    navIdx = (navIdx + 1) % navFreqs.length;
+    navEl.style.opacity = '0';
+    setTimeout(() => {
+      navEl.textContent = navFreqs[navIdx];
+      navEl.style.opacity = '';
+    }, 200);
+  }, 6000);
+
+  // ── Main render loop ──
+  function drawBg(ts) {
+    const W = canvas.width, H = canvas.height;
+    ctx.clearRect(0, 0, W, H);
+
+    // Deep sky gradient
+    const grad = ctx.createLinearGradient(0, 0, 0, H);
+    grad.addColorStop(0, '#000508');
+    grad.addColorStop(0.6, '#00100a');
+    grad.addColorStop(1, '#000000');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, W, H);
+
+    // Stars
+    stars.forEach(s => {
+      s.x -= s.speed;
+      if (s.x < 0) { s.x = 1; s.y = Math.random(); }
+      ctx.beginPath();
+      ctx.arc(s.x * W, s.y * H, s.r, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(180,255,220,${s.opacity})`;
+      ctx.fill();
+    });
+
+    // Horizon glow line
+    const hy = H * 0.7;
+    const hGrad = ctx.createLinearGradient(0, hy - 30, 0, hy + 30);
+    hGrad.addColorStop(0, 'transparent');
+    hGrad.addColorStop(0.5, 'rgba(0,255,157,0.04)');
+    hGrad.addColorStop(1, 'transparent');
+    ctx.fillStyle = hGrad;
+    ctx.fillRect(0, hy - 30, W, 60);
+
+    ctx.beginPath();
+    ctx.moveTo(0, hy); ctx.lineTo(W, hy);
+    ctx.strokeStyle = 'rgba(0,255,157,0.08)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    // Moving aircraft
+    plane.x += plane.speed;
+    if (plane.x > 1.2) plane.x = -0.15;
+    drawPlane(plane.x, plane.y, 60);
+
+    // ── Advance flight state ──
+    if (lastTs !== null) {
+      const dt = (ts - lastTs) / 1000;
+
+      // Altitude climb
+      altAccum += (climbFpm / 60) * dt;
+      if (altAccum >= 20) {
+        altDisplay += 20;
+        altAccum -= 20;
+        if (altDisplay > 12000) altDisplay = 2000;
+        altVal.textContent = altDisplay;
+      }
+
+      // IAS subtle drift
+      ias += (iasTarget - ias) * 0.002;
+      iasVal.textContent = Math.round(ias);
+
+      // Heading sweep — slow turn then hold
+      if (Math.abs(heading - headingTarget) > 0.1) {
+        heading += Math.sign(headingTarget - heading) * headingRate * dt;
+        heading = Math.round(heading * 10) / 10;
+      }
+      hdgVal.textContent = Math.round(heading) + '°';
+
+      // Roll oscillation — gentle turbulence / wing rock
+      rollAngle = rollAmplitude * Math.sin((ts / 1000) * (2 * Math.PI / rollPeriod));
+      horizonGroup.setAttribute('transform',
+        `translate(0, ${CLIMB_PITCH_PX}) rotate(${rollAngle.toFixed(2)}, 210, 45)`
+      );
+    }
+    lastTs = ts;
+
+    requestAnimationFrame(drawBg);
+  }
+
+  requestAnimationFrame(drawBg);
+</script>
+</body>
+</html>
