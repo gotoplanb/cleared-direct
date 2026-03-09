@@ -1,6 +1,8 @@
 import os
 from pathlib import Path
 
+import dj_database_url
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.environ.get(
@@ -12,6 +14,7 @@ DEBUG = os.environ.get("DJANGO_DEBUG", "true").lower() == "true"
 
 ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",") + [
     ".ngrok-free.dev",
+    ".herokuapp.com",
 ]
 
 INSTALLED_APPS = [
@@ -29,6 +32,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -57,16 +61,22 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "config.wsgi.application"
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": os.environ.get("DB_NAME", "ifr_trainer"),
-        "USER": os.environ.get("DB_USER", "orginator"),
-        "PASSWORD": os.environ.get("DB_PASSWORD", "orginator"),
-        "HOST": os.environ.get("DB_HOST", "localhost"),
-        "PORT": os.environ.get("DB_PORT", "5455"),
+# Database: use DATABASE_URL if set (Heroku), else local dev defaults
+if os.environ.get("DATABASE_URL"):
+    DATABASES = {
+        "default": dj_database_url.config(conn_max_age=600, ssl_require=True),
     }
-}
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": os.environ.get("DB_NAME", "ifr_trainer"),
+            "USER": os.environ.get("DB_USER", "orginator"),
+            "PASSWORD": os.environ.get("DB_PASSWORD", "orginator"),
+            "HOST": os.environ.get("DB_HOST", "localhost"),
+            "PORT": os.environ.get("DB_PORT", "5455"),
+        }
+    }
 
 AUTH_PASSWORD_VALIDATORS = []
 
@@ -78,6 +88,11 @@ USE_TZ = True
 STATIC_URL = "static/"
 STATICFILES_DIRS = [BASE_DIR / "static"]
 STATIC_ROOT = BASE_DIR / "staticfiles"
+STORAGES = {
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
 
 MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / "media"
@@ -92,4 +107,5 @@ ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 
 CSRF_TRUSTED_ORIGINS = [
     "https://*.ngrok-free.dev",
+    "https://*.herokuapp.com",
 ]

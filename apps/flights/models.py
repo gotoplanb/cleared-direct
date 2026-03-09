@@ -131,6 +131,7 @@ class FlightSession(models.Model):
     paused = models.BooleanField(default=False)
 
     class Meta:
+        db_table = "ifr_flight_session"
         ordering = ["-started_at"]
 
     def __str__(self):
@@ -164,6 +165,7 @@ class EventQueueItem(models.Model):
     resolved_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
+        db_table = "ifr_event_queue_item"
         ordering = ["order"]
 
     def __str__(self):
@@ -199,6 +201,7 @@ class PlayerAction(models.Model):
     response_time_seconds = models.FloatField(null=True, blank=True)
 
     class Meta:
+        db_table = "ifr_player_action"
         ordering = ["presented_at"]
 
     def __str__(self):

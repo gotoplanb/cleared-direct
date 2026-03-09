@@ -10,6 +10,7 @@ class AircraftType(models.Model):
     performance_notes = models.TextField(blank=True)
 
     class Meta:
+        db_table = "ifr_aircraft_type"
         ordering = ["name"]
 
     def __str__(self):

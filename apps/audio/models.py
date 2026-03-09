@@ -17,6 +17,7 @@ class ATCAudioClip(models.Model):
     )
 
     class Meta:
+        db_table = "ifr_atc_audio_clip"
         ordering = ["slug"]
         verbose_name = "ATC Audio Clip"
 

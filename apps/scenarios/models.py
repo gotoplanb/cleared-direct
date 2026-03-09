@@ -34,6 +34,7 @@ class ScenarioTemplate(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
+        db_table = "ifr_scenario_template"
         ordering = ["title"]
 
     def __str__(self):
