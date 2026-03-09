@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PFD — Cleared Direct</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;600;700&display=swap');
+
+:root {
+--bg:        #060807;
+--green:     #00ff9d;
+--green-dim: #00ff9d55;
+--cyan:      #00d4ff;
+--amber:     #ffaa00;
+--magenta:   #ff44cc;
+--red:       #ff4444;
+--sky-top:   #0d2a4a;
+--sky-bot:   #1a4a7a;
+--gnd-top:   #4a2e0a;
+--gnd-bot:   #2a1a06;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+background: var(--bg);
+min-height: 100vh;
+display: flex;
+flex-direction: column;
+align-items: center;
+justify-content: center;
+font-family: 'Share Tech Mono', monospace;
+padding: 16px 8px;
+}
+
+.pfd-wrap {
+width: min(420px, 100%);
+background: #080a09;
+border: 1px solid #1e2422;
+border-radius: 6px;
+overflow: hidden;
+box-shadow: 0 12px 40px rgba(0,0,0,0.9), 0 0 0 1px #050706;
+}
+
+/* AP Mode annunciator */
+.ap-bar {
+background: #060808;
+border-bottom: 1px solid #141a14;
+display: flex;
+align-items: center;
+padding: 4px 8px;
+gap: 0;
+height: 28px;
+}
+
+.ap-mode {
+flex: 1;
+text-align: center;
+font-family: 'Orbitron', sans-serif;
+font-size: 10px;
+font-weight: 600;
+letter-spacing: 0.06em;
+color: #1e2422;
+transition: color 0.2s, text-shadow 0.2s;
+}
+
+.ap-mode.engaged {
+color: var(--green);
+text-shadow: 0 0 8px rgba(0,255,157,0.7);
+}
+
+.ap-mode.armed {
+color: var(--cyan);
+text-shadow: 0 0 6px rgba(0,212,255,0.6);
+}
+
+.ap-mode.ap-on {
+color: var(--amber);
+text-shadow: 0 0 8px rgba(255,170,0,0.7);
+}
+
+.ap-sep {
+width: 1px;
+height: 14px;
+background: #1e2422;
+}
+
+/* Main canvas area */
+#pfd-canvas {
+display: block;
+width: 100%;
+touch-action: none;
+}
+
+/* Heading tape container */
+.hdg-row {
+background: #060808;
+border-top: 1px solid #141a14;
+position: relative;
+height: 42px;
+overflow: hidden;
+}
+
+#hdg-canvas {
+display: block;
+width: 100%;
+height: 42px;
+}
+
+/* Bottom info strip */
+.info-strip {
+background: #060808;
+border-top: 1px solid #0e1210;
+display: flex;
+justify-content: space-between;
+align-items: center;
+padding: 5px 12px;
+font-size: 9px;
+color: #3a4440;
+letter-spacing: 0.1em;
+}
+
+.info-strip span { color: var(--green-dim); }
+
+.scanlines {
+position: fixed;
+inset: 0;
+background: repeating-linear-gradient(
+to bottom,
+transparent 0px, transparent 3px,
+rgba(0,0,0,0.1) 3px, rgba(0,0,0,0.1) 4px
+);
+pointer-events: none;
+z-index: 100;
+}
+
+.unit-label {
+font-size: 8px;
+letter-spacing: 0.3em;
+color: #1a1e1d;
+text-transform: uppercase;
+margin-top: 10px;
+}
+</style>
+</head>
+<body>
+<div class="scanlines"></div>
+
+<div class="pfd-wrap">
+
+  <!-- AP Annunciator -->
+  <div class="ap-bar">
+    <div class="ap-mode ap-on">AP</div>
+    <div class="ap-sep"></div>
+    <div class="ap-mode engaged">HDG</div>
+    <div class="ap-sep"></div>
+    <div class="ap-mode">NAV</div>
+    <div class="ap-sep"></div>
+    <div class="ap-mode">APR</div>
+    <div class="ap-sep"></div>
+    <div class="ap-mode engaged">VS</div>
+    <div class="ap-sep"></div>
+    <div class="ap-mode armed">ALT</div>
+    <div class="ap-sep"></div>
+    <div class="ap-mode">FLC</div>
+  </div>
+
+  <!-- Main PFD canvas -->
+  <canvas id="pfd-canvas"></canvas>
+
+  <!-- Heading tape -->
+  <div class="hdg-row">
+    <canvas id="hdg-canvas"></canvas>
+  </div>
+
+  <!-- Info strip -->
+  <div class="info-strip">
+    <div>GS <span id="gs-val">162</span> KT</div>
+    <div>KGNV <span style="color:var(--magenta)">&rarr;</span> KOJM</div>
+    <div>ETE <span id="ete-val">0:48</span></div>
+  </div>
+
+</div>
+
+<div class="unit-label">G3X PRIMARY FLIGHT DISPLAY</div>
+
+<script>
+const pfdCanvas = document.getElementById('pfd-canvas');
+const pfdCtx = pfdCanvas.getContext('2d');
+const hdgCanvas = document.getElementById('hdg-canvas');
+const hdgCtx = hdgCanvas.getContext('2d');
+
+// ── Flight state ──
+const state = {
+  ias:     148,       // kts
+  alt:     3420,      // ft
+  vs:      800,       // fpm (climbing)
+  hdg:     280,       // degrees
+  pitch:   4.5,       // degrees nose up
+  bank:    0,         // degrees
+  selAlt:  8000,
+  selHdg:  280,
+  selVS:   800,
+};
+
+// Speed bugs (kts)
+const BUGS = {
+  Vx:   110,
+  Vy:   128,
+  Va:   156,
+  Vno:  178,
+  Vne:  200,
+};
+
+let W = 0, H = 0;
+// Layout regions (set in resize)
+let ATI = {}; // attitude indicator rect
+let IAS = {}; // airspeed tape rect
+let ALT = {}; // altitude tape rect
+let VSI = {}; // vsi rect
+
+function resize() {
+  const wrap = pfdCanvas.parentElement;
+  W = wrap.clientWidth;
+  H = Math.round(W * 0.72); // aspect ratio
+  pfdCanvas.width  = W;
+  pfdCanvas.height = H;
+  hdgCanvas.width  = W;
+  hdgCanvas.height = 42;
+
+  const tapeW = Math.round(W * 0.155);
+  const vsiW  = Math.round(W * 0.065);
+  const cx    = W / 2;
+  const cy    = H / 2;
+  const atiR  = Math.round(W * 0.28); // half-width of ATI
+
+  IAS = { x: 0,           y: 0,       w: tapeW, h: H };
+  ALT = { x: W-tapeW-vsiW, y: 0,      w: tapeW, h: H };
+  VSI = { x: W-vsiW,       y: 0,      w: vsiW,  h: H };
+  ATI = { x: tapeW,        y: 0,      w: W-tapeW*2-vsiW, h: H };
+}
+
+// ── HELPERS ──
+function px(x) { return Math.round(x); }
+
+function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
+function drawRoundRect(ctx, x, y, w, h, r, fill, stroke) {
+  ctx.beginPath();
+  ctx.roundRect(x, y, w, h, r);
+  if (fill)   { ctx.fillStyle = fill;   ctx.fill(); }
+  if (stroke) { ctx.strokeStyle = stroke; ctx.stroke(); }
+}
+
+// ══════════════════════════════
+//  ATTITUDE INDICATOR
+// ══════════════════════════════
+function drawATI(ctx, ati, pitch, bank) {
+  const cx = ati.x + ati.w / 2;
+  const cy = ati.y + ati.h / 2;
+  const pitchPx = 5.5; // px per degree
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(ati.x, ati.y, ati.w, ati.h);
+  ctx.clip();
+
+  // Rotate around center for bank
+  ctx.translate(cx, cy);
+  ctx.rotate(bank * Math.PI / 180);
+  ctx.translate(-cx, -cy);
+
+  // Pitch offset — positive pitch moves horizon DOWN (nose up)
+  const pitchOff = pitch * pitchPx;
+  const horizY = cy + pitchOff;
+
+  // Sky
+  const skyGrad = ctx.createLinearGradient(0, horizY - ati.h, 0, horizY);
+  skyGrad.addColorStop(0, '#0a1e38');
+  skyGrad.addColorStop(1, '#1a4a78');
+  ctx.fillStyle = skyGrad;
+  ctx.fillRect(ati.x - 200, ati.y - 200, ati.w + 400, horizY - ati.y + 200);
+
+  // Ground
+  const gndGrad = ctx.createLinearGradient(0, horizY, 0, horizY + ati.h);
+  gndGrad.addColorStop(0, '#5a3010');
+  gndGrad.addColorStop(1, '#2a1806');
+  ctx.fillStyle = gndGrad;
+  ctx.fillRect(ati.x - 200, horizY, ati.w + 400, ati.h + 200);
+
+  // Horizon line
+  ctx.strokeStyle = '#00ff9d';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(ati.x - 200, horizY);
+  ctx.lineTo(ati.x + ati.w + 200, horizY);
+  ctx.stroke();
+
+  // Pitch ladder
+  ctx.font = '10px Share Tech Mono';
+  ctx.textAlign = 'right';
+  for (let deg = -30; deg <= 30; deg += 5) {
+    if (deg === 0) continue;
+    const y = horizY - deg * pitchPx;
+    const isMajor = deg % 10 === 0;
+    const lineW = isMajor ? ati.w * 0.22 : ati.w * 0.13;
+
+    ctx.strokeStyle = 'rgba(255,255,255,0.55)';
+    ctx.lineWidth = isMajor ? 1.5 : 1;
+
+    // Left line
+    ctx.beginPath();
+    ctx.moveTo(cx - lineW / 2, y);
+    ctx.lineTo(cx + lineW / 2, y);
+    ctx.stroke();
+
+    if (isMajor) {
+      ctx.fillStyle = 'rgba(255,255,255,0.6)';
+      ctx.fillText(Math.abs(deg), cx - lineW / 2 - 4, y + 3.5);
+      ctx.textAlign = 'left';
+      ctx.fillText(Math.abs(deg), cx + lineW / 2 + 4, y + 3.5);
+      ctx.textAlign = 'right';
+    }
+  }
+
+  ctx.restore();
+
+  // ── Bank arc (not rotated — drawn in screen space) ──
+  const arcR = ati.w * 0.42;
+  const arcCX = cx;
+  const arcCY = ati.y + 18;
+
+  ctx.save();
+  ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.arc(arcCX, arcCY + arcR - 18, arcR, Math.PI * 1.17, Math.PI * 1.83);
+  ctx.stroke();
+
+  // Bank tick marks
+  const bankTicks = [10, 20, 30, 45, 60];
+  bankTicks.forEach(deg => {
+    [-1, 1].forEach(side => {
+      const a = Math.PI * 1.5 + side * deg * Math.PI / 180;
+      const r1 = arcR;
+      const r2 = arcR - (deg % 30 === 0 ? 8 : 5);
+      const bx = arcCX + Math.cos(a) * r1;
+      const by = arcCY + arcR - 18 + Math.sin(a) * r1;
+      const bx2 = arcCX + Math.cos(a) * r2;
+      const by2 = arcCY + arcR - 18 + Math.sin(a) * r2;
+      ctx.beginPath();
+      ctx.moveTo(bx, by);
+      ctx.lineTo(bx2, by2);
+      ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+      ctx.lineWidth = deg % 30 === 0 ? 1.5 : 1;
+      ctx.stroke();
+    });
+  });
+
+  // Bank pointer (rotates with bank)
+  ctx.save();
+  ctx.translate(arcCX, arcCY + arcR - 18);
+  ctx.rotate(bank * Math.PI / 180);
+  ctx.translate(-arcCX, -(arcCY + arcR - 18));
+
+  ctx.fillStyle = 'rgba(255,255,255,0.8)';
+  ctx.beginPath();
+  ctx.moveTo(arcCX, arcCY + arcR - 18 - arcR + 2);
+  ctx.lineTo(arcCX - 5, arcCY + arcR - 18 - arcR + 11);
+  ctx.lineTo(arcCX + 5, arcCY + arcR - 18 - arcR + 11);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+
+  // ── Aircraft symbol (fixed, center screen) ──
+  const symY = ati.y + ati.h / 2;
+  const symX = cx;
+  ctx.strokeStyle = '#ffcc00';
+  ctx.lineWidth = 2.5;
+  ctx.lineCap = 'round';
+
+  // Left wing
+  ctx.beginPath();
+  ctx.moveTo(symX - 40, symY);
+  ctx.lineTo(symX - 18, symY);
+  ctx.stroke();
+  // Right wing
+  ctx.beginPath();
+  ctx.moveTo(symX + 18, symY);
+  ctx.lineTo(symX + 40, symY);
+  ctx.stroke();
+  // Center dot + small line
+  ctx.beginPath();
+  ctx.arc(symX, symY, 4, 0, Math.PI * 2);
+  ctx.strokeStyle = '#ffcc00';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  // Tail
+  ctx.beginPath();
+  ctx.moveTo(symX - 7, symY - 8);
+  ctx.lineTo(symX + 7, symY - 8);
+  ctx.lineWidth = 2;
+  ctx.stroke();
+}
+
+// ══════════════════════════════
+//  AIRSPEED TAPE
+// ══════════════════════════════
+function drawIASTape(ctx, ias_rect, ias) {
+  const { x, y, w, h } = ias_rect;
+  const cx = x + w / 2;
+  const cy = y + h / 2;
+  const pxPerKt = 4.0;
+
+  // Background
+  ctx.fillStyle = 'rgba(0,0,0,0.72)';
+  ctx.fillRect(x, y, w, h);
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(x, y, w, h);
+  ctx.clip();
+
+  // Draw speed range visible on tape
+  const visRange = h / pxPerKt / 2 + 10;
+  const minSpd = Math.max(0, ias - visRange);
+  const maxSpd = ias + visRange;
+
+  // Color bands
+  // White arc (normal ops) 65-165, green arc to Vno
+  const bands = [
+    { lo: 0,   hi: 60,  color: 'rgba(255,68,68,0.15)' },   // below stall
+    { lo: 60,  hi: 110, color: 'rgba(255,255,255,0.04)' },  // white arc
+    { lo: 110, hi: 178, color: 'rgba(0,255,100,0.04)' },    // green arc
+    { lo: 178, hi: 200, color: 'rgba(255,170,0,0.08)' },    // yellow
+    { lo: 200, hi: 999, color: 'rgba(255,68,68,0.12)' },    // red
+  ];
+
+  bands.forEach(b => {
+    const top = cy - (b.hi - ias) * pxPerKt;
+    const bot = cy - (b.lo - ias) * pxPerKt;
+    ctx.fillStyle = b.color;
+    ctx.fillRect(x + w * 0.7, top, w * 0.12, bot - top);
+  });
+
+  // Tick marks and labels
+  ctx.font = '10px Share Tech Mono';
+  ctx.textAlign = 'right';
+
+  for (let spd = Math.floor(minSpd / 10) * 10; spd <= maxSpd; spd += 10) {
+    if (spd < 0) continue;
+    const tickY = cy - (spd - ias) * pxPerKt;
+    const isMajor = spd % 20 === 0;
+
+    ctx.strokeStyle = isMajor ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.3)';
+    ctx.lineWidth = isMajor ? 1.5 : 1;
+    const tickLen = isMajor ? w * 0.38 : w * 0.22;
+
+    ctx.beginPath();
+    ctx.moveTo(x + w - 1, tickY);
+    ctx.lineTo(x + w - 1 - tickLen, tickY);
+    ctx.stroke();
+
+    if (isMajor && spd > 0) {
+      ctx.fillStyle = 'rgba(220,240,220,0.85)';
+      ctx.fillText(spd, x + w - tickLen - 4, tickY + 3.5);
+    }
+  }
+
+  // Speed bugs
+  Object.entries(BUGS).forEach(([name, bugSpd]) => {
+    const bugY = cy - (bugSpd - ias) * pxPerKt;
+    if (bugY < y || bugY > y + h) return;
+    const color = name === 'Vne' ? '#ff4444' : name === 'Vno' ? '#ffaa00' : '#00ff9d';
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(x + w, bugY);
+    ctx.lineTo(x + w - 10, bugY - 4);
+    ctx.lineTo(x + w - 10, bugY + 4);
+    ctx.closePath();
+    ctx.fill();
+  });
+
+  ctx.restore();
+
+  // Current speed box
+  const boxH = 30;
+  const boxW = w;
+  const boxY = cy - boxH / 2;
+
+  // Pointer
+  ctx.fillStyle = '#1a2018';
+  ctx.beginPath();
+  ctx.moveTo(x + boxW, cy);
+  ctx.lineTo(x + boxW - 8, cy - 6);
+  ctx.lineTo(x + boxW + 2, cy - 6);
+  ctx.lineTo(x + boxW + 2, cy + 6);
+  ctx.lineTo(x + boxW - 8, cy + 6);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = '#00ff9d';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // Box
+  drawRoundRect(ctx, x, boxY, boxW - 6, boxH, 2, '#0a1208', '#00ff9d');
+
+  ctx.font = 'bold 18px Orbitron, Share Tech Mono';
+  ctx.fillStyle = '#00ff9d';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(Math.round(ias), x + (boxW - 6) / 2, cy + 0.5);
+  ctx.textBaseline = 'alphabetic';
+}
+
+// ══════════════════════════════
+//  ALTITUDE TAPE
+// ══════════════════════════════
+function drawAltTape(ctx, alt_rect, alt, selAlt) {
+  const { x, y, w, h } = alt_rect;
+  const cx = x + w / 2;
+  const cy = y + h / 2;
+  const pxPer100 = 5.5;
+  const pxPerFt  = pxPer100 / 100;
+
+  ctx.fillStyle = 'rgba(0,0,0,0.72)';
+  ctx.fillRect(x, y, w, h);
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(x, y, w, h);
+  ctx.clip();
+
+  const visRange = h / pxPerFt / 2 + 200;
+  const minAlt = alt - visRange;
+  const maxAlt = alt + visRange;
+
+  ctx.font = '10px Share Tech Mono';
+  ctx.textAlign = 'left';
+
+  for (let a = Math.floor(minAlt / 100) * 100; a <= maxAlt; a += 100) {
+    const tickY = cy - (a - alt) * pxPerFt;
+    const isMajor = a % 500 === 0;
+
+    ctx.strokeStyle = isMajor ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.3)';
+    ctx.lineWidth = isMajor ? 1.5 : 1;
+    const tickLen = isMajor ? w * 0.38 : w * 0.22;
+
+    ctx.beginPath();
+    ctx.moveTo(x + 1, tickY);
+    ctx.lineTo(x + 1 + tickLen, tickY);
+    ctx.stroke();
+
+    if (isMajor) {
+      ctx.fillStyle = 'rgba(220,240,220,0.85)';
+      ctx.fillText(a >= 0 ? a : '', x + tickLen + 4, tickY + 3.5);
+    }
+  }
+
+  // Selected altitude bug
+  const selAltY = cy - (selAlt - alt) * pxPerFt;
+  if (selAltY >= y && selAltY <= y + h) {
+    ctx.fillStyle = 'rgba(0,212,255,0.9)';
+    ctx.beginPath();
+    ctx.moveTo(x + 1, selAltY);
+    ctx.lineTo(x + 14, selAltY - 6);
+    ctx.lineTo(x + w - 2, selAltY - 6);
+    ctx.lineTo(x + w - 2, selAltY + 6);
+    ctx.lineTo(x + 14, selAltY + 6);
+    ctx.closePath();
+    ctx.fill();
+    ctx.font = 'bold 9px Orbitron';
+    ctx.fillStyle = '#000';
+    ctx.textAlign = 'center';
+    ctx.fillText(selAlt, x + w / 2 + 6, selAltY + 3);
+    ctx.textAlign = 'left';
+  }
+
+  ctx.restore();
+
+  // ── Rolling altitude readout box ──
+  const boxH = 30;
+  const boxW = w;
+  const boxY = cy - boxH / 2;
+
+  // Pointer
+  ctx.fillStyle = '#1a2018';
+  ctx.beginPath();
+  ctx.moveTo(x, cy);
+  ctx.lineTo(x + 8, cy - 6);
+  ctx.lineTo(x - 2, cy - 6);
+  ctx.lineTo(x - 2, cy + 6);
+  ctx.lineTo(x + 8, cy + 6);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = '#00ff9d';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  drawRoundRect(ctx, x + 5, boxY, boxW - 4, boxH, 2, '#0a1208', '#00ff9d');
+
+  // Rolling hundreds digit
+  const hundreds = Math.floor(alt / 100) % 10;
+  const tensFrac = (alt % 100) / 100;
+  const altStr = String(Math.floor(alt / 1000)).padStart(2, ' ');
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(x + 5, boxY, boxW - 4, boxH);
+  ctx.clip();
+
+  ctx.font = 'bold 17px Orbitron, Share Tech Mono';
+  ctx.fillStyle = '#00ff9d';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+
+  // Thousands
+  ctx.fillText(altStr, x + (boxW - 4) * 0.36 + 5, cy);
+
+  // Rolling hundreds — scroll between digits
+  const rollY = cy + tensFrac * 20;
+  for (let d = -1; d <= 2; d++) {
+    const digit = ((hundreds - d + 10) % 10);
+    ctx.fillText(digit * 100 === 0 && d !== 0 ? (d > 0 ? (hundreds === 9 ? '000' : String((hundreds + 1) % 10 * 100).padStart(3,' ')) : '') : String(digit * 100).padStart(3, ' '),
+      x + (boxW - 4) * 0.72 + 5,
+      rollY + d * 20
+    );
+  }
+
+  ctx.restore();
+  ctx.textBaseline = 'alphabetic';
+}
+
+// ══════════════════════════════
+//  VSI TAPE
+// ══════════════════════════════
+function drawVSI(ctx, vsi_rect, vs) {
+  const { x, y, w, h } = vsi_rect;
+  const cx = x + w / 2;
+  const cy = y + h / 2;
+  const maxVS = 2000;
+  const pxPerFpm = (h * 0.42) / maxVS;
+
+  ctx.fillStyle = 'rgba(0,0,0,0.6)';
+  ctx.fillRect(x, y, w, h);
+
+  // Center line
+  ctx.strokeStyle = '#1e2422';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(cx, y + h * 0.08);
+  ctx.lineTo(cx, y + h * 0.92);
+  ctx.stroke();
+
+  // VSI tick marks
+  [500, 1000, 2000].forEach(fpm => {
+    [-1, 1].forEach(dir => {
+      const tickY = cy - dir * fpm * pxPerFpm;
+      ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(x + 2, tickY);
+      ctx.lineTo(x + w - 2, tickY);
+      ctx.stroke();
+
+      if (fpm === 1000 || fpm === 2000) {
+        ctx.font = '7px Share Tech Mono';
+        ctx.fillStyle = 'rgba(200,220,200,0.5)';
+        ctx.textAlign = 'center';
+        ctx.fillText(fpm / 100, cx, tickY + (dir > 0 ? -2 : 9));
+      }
+    });
+  });
+
+  // VS bar
+  const vsClamp = clamp(vs, -maxVS, maxVS);
+  const barH = vsClamp * pxPerFpm;
+  const barColor = vs > 0 ? '#00ff9d' : '#ff8844';
+  const barY = vs > 0 ? cy - barH : cy;
+
+  ctx.fillStyle = barColor + 'cc';
+  ctx.fillRect(x + w * 0.25, Math.min(cy, cy - barH), w * 0.5, Math.abs(barH));
+
+  // VS readout
+  if (Math.abs(vs) > 50) {
+    ctx.font = 'bold 9px Share Tech Mono';
+    ctx.fillStyle = barColor;
+    ctx.textAlign = 'center';
+    const labelY = vs > 0 ? cy - barH - 4 : cy - barH + 14;
+    ctx.fillText(Math.round(Math.abs(vs) / 100) + '\u2191', cx, clamp(labelY, y + 14, y + h - 4));
+  }
+}
+
+// ══════════════════════════════
+//  HEADING TAPE
+// ══════════════════════════════
+function drawHdgTape(ctx, W, H, hdg, selHdg) {
+  const cx = W / 2;
+  const cy = H / 2;
+  const pxPerDeg = W / 40; // 40 degrees visible
+
+  ctx.fillStyle = 'rgba(0,0,0,0.7)';
+  ctx.fillRect(0, 0, W, H);
+
+  const visRange = (W / pxPerDeg) / 2 + 5;
+
+  ctx.font = '10px Share Tech Mono';
+  ctx.textAlign = 'center';
+
+  for (let d = Math.floor((hdg - visRange) / 5) * 5; d <= hdg + visRange; d += 5) {
+    const deg = ((d % 360) + 360) % 360;
+    const tickX = cx + (d - hdg) * pxPerDeg;
+    const isMajor = d % 10 === 0;
+
+    ctx.strokeStyle = isMajor ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.25)';
+    ctx.lineWidth = isMajor ? 1.5 : 1;
+    ctx.beginPath();
+    ctx.moveTo(tickX, 0);
+    ctx.lineTo(tickX, isMajor ? 12 : 7);
+    ctx.stroke();
+
+    if (isMajor) {
+      // Cardinal labels
+      const labels = {0:'N', 90:'E', 180:'S', 270:'W', 360:'N'};
+      const label = labels[deg] || String(deg).padStart(3,'0');
+      ctx.fillStyle = labels[deg] ? 'rgba(255,255,255,0.9)' : 'rgba(180,200,180,0.7)';
+      ctx.font = labels[deg] ? 'bold 11px Share Tech Mono' : '10px Share Tech Mono';
+      ctx.fillText(label, tickX, H - 5);
+    }
+  }
+
+  // Selected heading bug
+  const selDiff = ((selHdg - hdg + 540) % 360) - 180;
+  const selX = cx + selDiff * pxPerDeg;
+  if (selX > 10 && selX < W - 10) {
+    ctx.fillStyle = 'rgba(0,212,255,0.9)';
+    ctx.beginPath();
+    ctx.moveTo(selX, H - 1);
+    ctx.lineTo(selX - 7, H - 12);
+    ctx.lineTo(selX + 7, H - 12);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  // Current heading box
+  const boxW = 52;
+  const boxH = H - 2;
+  drawRoundRect(ctx, cx - boxW/2, 1, boxW, boxH, 2, '#0a1208', '#00ff9d');
+  ctx.font = 'bold 15px Orbitron, Share Tech Mono';
+  ctx.fillStyle = '#00ff9d';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(String(Math.round(hdg)).padStart(3,'0'), cx, H/2 + 1);
+  ctx.textBaseline = 'alphabetic';
+
+  // Lubber line above box
+  ctx.strokeStyle = '#00ff9d';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(cx, 0);
+  ctx.lineTo(cx, 4);
+  ctx.stroke();
+}
+
+// ══════════════════════════════
+//  MAIN DRAW LOOP
+// ══════════════════════════════
+let lastTs = null;
+let altAccum = 0;
+
+function draw(ts) {
+  if (lastTs !== null) {
+    const dt = (ts - lastTs) / 1000;
+
+    // Advance state
+    altAccum += state.vs * dt / 60;
+    if (altAccum >= 20) {
+      state.alt += 20;
+      altAccum -= 20;
+    }
+    if (state.alt > 12000) state.alt = 2000;
+
+    // IAS barely drifts
+    state.ias += (150 - state.ias) * 0.002;
+  }
+  lastTs = ts;
+
+  pfdCtx.clearRect(0, 0, W, H);
+
+  // Dark background behind everything
+  pfdCtx.fillStyle = '#080a09';
+  pfdCtx.fillRect(0, 0, W, H);
+
+  // Draw layers
+  drawATI(pfdCtx, ATI, state.pitch, state.bank);
+  drawIASTape(pfdCtx, IAS, state.ias);
+  drawAltTape(pfdCtx, ALT, state.alt, state.selAlt);
+  drawVSI(pfdCtx, VSI, state.vs);
+
+  // Heading tape
+  hdgCtx.clearRect(0, 0, W, 42);
+  drawHdgTape(hdgCtx, W, 42, state.hdg, state.selHdg);
+
+  requestAnimationFrame(draw);
+}
+
+// Init
+resize();
+window.addEventListener('resize', () => { resize(); });
+requestAnimationFrame(draw);
+
+// Zulu time (reuse from other panels if combined)
+function updateZulu() {
+  const now = new Date();
+  const h = String(now.getUTCHours()).padStart(2,'0');
+  const m = String(now.getUTCMinutes()).padStart(2,'0');
+}
+updateZulu();
+setInterval(updateZulu, 1000);
+</script>
+</body>
+</html>
