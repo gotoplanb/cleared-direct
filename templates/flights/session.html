@@ -1,218 +1,614 @@
 {% extends "base.html" %}
-{% block title %}{{ session.scenario_template.title }} — IFR Trainer{% endblock %}
+{% block title %}{{ session.scenario_template.title }} — Cleared Direct{% endblock %}
 
 {% block extra_css %}
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;600;700&display=swap');
+
+/* ── Layout ── */
 .flight-hud {
     display: flex;
     flex-direction: column;
     height: 100vh;
     overflow: hidden;
+    background: #060807;
+    font-family: 'Share Tech Mono', monospace;
 }
+
+/* ── AP Annunciator ── */
 .annunciator-bar {
-    background: #000;
-    padding: 0.4rem 1rem;
+    background: #060808;
+    padding: 4px 8px;
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    border-bottom: 1px solid var(--border);
-    font-size: 0.75rem;
+    border-bottom: 1px solid #141a14;
+    height: 28px;
+    gap: 0;
+    flex-shrink: 0;
 }
-.ap-modes {
-    color: var(--accent-green);
-    letter-spacing: 0.15em;
+.ann-mode {
+    flex: 1;
+    text-align: center;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    color: #1e2422;
 }
-.phase-badge {
-    color: var(--accent-amber);
-    text-transform: uppercase;
-}
+.ann-mode.engaged { color: #00ff9d; text-shadow: 0 0 8px rgba(0,255,157,0.7); }
+.ann-mode.armed   { color: #00d4ff; text-shadow: 0 0 6px rgba(0,212,255,0.6); }
+.ann-mode.ap-on   { color: #ffaa00; text-shadow: 0 0 8px rgba(255,170,0,0.7); }
+.ann-sep { width: 1px; height: 14px; background: #1e2422; }
+
+/* ── Panel Swiper ── */
 .panel-container {
     flex: 1;
     position: relative;
     overflow: hidden;
+    touch-action: pan-y;
 }
-.instrument-panel {
-    width: 100%;
+.panel-track {
+    display: flex;
+    width: 300%;
     height: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 1rem;
+    transition: transform 0.3s ease;
 }
-/* PFD placeholder */
-.pfd {
-    width: 100%;
-    max-width: 500px;
-    aspect-ratio: 1;
-    background: var(--bg-panel);
-    border: 1px solid var(--border);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    position: relative;
-}
-.pfd-value {
-    font-size: 2.5rem;
-    color: var(--accent-cyan);
-    font-weight: bold;
-}
-.pfd-label {
-    font-size: 0.7rem;
-    color: var(--text-dim);
-    margin-top: 0.25rem;
-}
-.pfd-row {
-    display: flex;
-    gap: 3rem;
-    text-align: center;
-    margin: 1rem 0;
-}
-/* Comms drawer */
-.comms-drawer {
-    background: var(--bg-panel);
-    border-top: 1px solid var(--border);
-    max-height: 40vh;
+.panel-page {
+    width: calc(100% / 3);
+    height: 100%;
     overflow-y: auto;
-    padding: 1rem;
-    transition: max-height 0.3s;
+    overflow-x: hidden;
 }
-.comms-drawer.collapsed {
-    max-height: 2.5rem;
+/* Panel nav dots */
+.panel-nav {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    padding: 6px 0;
+    background: #060808;
+    border-top: 1px solid #0e1210;
+    border-bottom: 1px solid #0e1210;
+    flex-shrink: 0;
+}
+.panel-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    border: 1px solid #2a3430;
+    background: transparent;
+    cursor: pointer;
+    transition: all 0.2s;
+    padding: 0;
+}
+.panel-dot.active {
+    background: #00ff9d;
+    border-color: #00ff9d;
+    box-shadow: 0 0 6px rgba(0,255,157,0.6);
+}
+.panel-label {
+    font-size: 8px;
+    letter-spacing: 0.15em;
+    color: #3a4440;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+.panel-label.active { color: #00ff9d; }
+
+/* ── PFD Panel ── */
+.pfd-wrap {
+    width: 100%;
+    max-width: 420px;
+    margin: 0 auto;
+    background: #080a09;
+    border: 1px solid #1e2422;
+    border-radius: 6px;
+    overflow: hidden;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+}
+#pfd-canvas { display: block; width: 100%; touch-action: none; }
+.hdg-row {
+    background: #060808;
+    border-top: 1px solid #141a14;
+    height: 42px;
     overflow: hidden;
 }
-.drawer-toggle {
-    color: var(--text-dim);
-    font-size: 0.75rem;
-    cursor: pointer;
-    margin-bottom: 0.5rem;
-}
-.atc-message {
-    background: var(--bg-primary);
-    border-left: 3px solid var(--accent-amber);
-    padding: 0.75rem;
-    margin-bottom: 0.75rem;
-    font-size: 0.85rem;
-}
-.atc-label {
-    color: var(--accent-amber);
-    font-size: 0.7rem;
-    margin-bottom: 0.25rem;
-}
-.response-input {
+#hdg-canvas { display: block; width: 100%; height: 42px; }
+.pfd-info-strip {
+    background: #060808;
+    border-top: 1px solid #0e1210;
     display: flex;
-    gap: 0.5rem;
-    margin-top: 0.5rem;
+    justify-content: space-between;
+    padding: 5px 12px;
+    font-size: 9px;
+    color: #3a4440;
+    letter-spacing: 0.1em;
 }
-.response-input input {
-    flex: 1;
-    background: var(--bg-primary);
-    border: 1px solid var(--border);
-    color: var(--text-primary);
-    padding: 0.5rem;
-    font-family: inherit;
-    font-size: 0.85rem;
-}
-.response-input button {
-    background: var(--accent-green);
-    color: var(--bg-primary);
-    border: none;
-    padding: 0.5rem 1rem;
-    font-family: inherit;
-    cursor: pointer;
-}
-.option-btn {
-    display: block;
+.pfd-info-strip span { color: #00ff9d55; }
+
+/* ── GTN 750 Panel ── */
+.gtn-unit {
     width: 100%;
-    text-align: left;
-    background: var(--bg-primary);
-    border: 1px solid var(--border);
-    color: var(--text-primary);
-    padding: 0.6rem;
-    font-family: inherit;
-    font-size: 0.85rem;
-    cursor: pointer;
-    margin-bottom: 0.4rem;
-    transition: border-color 0.2s;
+    max-width: 480px;
+    margin: 0 auto;
+    background: #111413;
+    border: 1px solid #2a2e2d;
+    border-radius: 6px;
+    overflow: hidden;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.6);
 }
-.option-btn:hover {
-    border-color: var(--accent-cyan);
-}
-.coaching-box {
-    background: rgba(255, 170, 0, 0.1);
-    border-left: 3px solid var(--accent-amber);
-    padding: 0.75rem;
-    margin-top: 0.5rem;
-    font-size: 0.8rem;
-    color: var(--accent-amber);
-}
-.phase-controls {
+.gtn-title-bar {
+    background: #080c0a;
+    border-bottom: 1px solid #1e2422;
+    padding: 6px 14px;
     display: flex;
-    gap: 0.5rem;
-    padding: 0.5rem 1rem;
-    background: #000;
-    border-top: 1px solid var(--border);
+    align-items: center;
+    justify-content: space-between;
 }
-.phase-btn {
-    background: transparent;
-    border: 1px solid var(--border);
-    color: var(--text-dim);
-    padding: 0.3rem 0.6rem;
-    font-family: inherit;
-    font-size: 0.7rem;
+.gtn-title-left { font-family: 'Orbitron', sans-serif; font-size: 9px; font-weight: 600; letter-spacing: 0.2em; color: #00ff9d88; }
+.gtn-title-center { font-family: 'Orbitron', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 0.15em; color: #00ff9d; text-shadow: 0 0 8px rgba(0,255,157,0.5); }
+.gtn-title-right { font-size: 9px; color: #2a3430; letter-spacing: 0.1em; }
+.gtn-tabs {
+    display: flex;
+    border-bottom: 1px solid #1e2422;
+}
+.gtn-tab {
+    flex: 1;
+    padding: 8px 4px;
+    text-align: center;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    color: #3a4440;
+    background: #080c0a;
+    border-right: 1px solid #1e2422;
     cursor: pointer;
+    transition: all 0.15s;
 }
-.phase-btn:hover {
-    border-color: var(--accent-cyan);
-    color: var(--accent-cyan);
+.gtn-tab:last-child { border-right: none; }
+.gtn-tab.active {
+    background: #0f1a14;
+    color: #00ff9d;
+    text-shadow: 0 0 6px rgba(0,255,157,0.5);
+    border-bottom: 2px solid #00ff9d;
+    margin-bottom: -1px;
+}
+.gtn-screen { background: #0c0f0e; min-height: 280px; }
+.gtn-page { display: none; padding: 12px; }
+.gtn-page.active { display: block; }
+
+/* GTN freq rows */
+.freq-section { margin-bottom: 14px; }
+.freq-section-label { font-size: 8px; letter-spacing: 0.25em; color: #3a4440; text-transform: uppercase; margin-bottom: 6px; padding-left: 2px; }
+.freq-row { display: flex; align-items: center; gap: 8px; background: #080c0a; border: 1px solid #1e2422; border-radius: 3px; padding: 10px 12px; }
+.freq-half { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.freq-sublabel { font-size: 7px; letter-spacing: 0.2em; color: #2a3430; text-transform: uppercase; }
+.freq-sublabel.active-lbl { color: #00ff9d88; }
+.freq-val { font-family: 'Orbitron', sans-serif; font-size: 20px; font-weight: 700; letter-spacing: 0.04em; color: #1e2422; transition: color 0.15s; }
+.freq-val.active { color: #00ff9d; text-shadow: 0 0 10px rgba(0,255,157,0.6); }
+.freq-val.standby { color: #5a6860; font-size: 17px; cursor: pointer; }
+.freq-val.nav-active { color: #00d4ff; text-shadow: 0 0 8px rgba(0,212,255,0.5); font-size: 18px; }
+.freq-val.nav-standby { color: #4a5858; font-size: 15px; }
+.freq-ident { font-size: 8px; letter-spacing: 0.15em; color: #2a3430; margin-top: 1px; }
+.freq-ident.active { color: #00ff9d88; }
+.flip-btn {
+    width: 32px; height: 32px; background: #0e1210; border: 1px solid #2a2e2d; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0;
+    color: #4a5450; font-size: 14px; transition: all 0.15s;
+}
+.flip-btn:hover { background: #1a2018; border-color: #00ff9d88; color: #00ff9d; }
+.com-strip { display: flex; justify-content: space-between; padding: 4px 2px 0; font-size: 8px; color: #2a3430; letter-spacing: 0.12em; }
+
+/* GTN flight plan */
+.fpl-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid #1e2422; }
+.fpl-title { font-family: 'Orbitron', sans-serif; font-size: 10px; font-weight: 600; color: #00ff9d88; letter-spacing: 0.15em; }
+.fpl-total { font-size: 9px; color: #3a4440; letter-spacing: 0.1em; }
+.fpl-cols { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 2px; margin-bottom: 4px; padding: 0 4px; }
+.fpl-col-label { font-size: 7px; letter-spacing: 0.15em; color: #2a3430; text-transform: uppercase; text-align: right; }
+.fpl-col-label:first-child { text-align: left; }
+.fpl-row { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 2px; padding: 8px 4px; border-radius: 2px; align-items: center; transition: background 0.1s; }
+.fpl-row.active-wpt { background: #0d1a10; border-left: 2px solid #ff44cc; padding-left: 6px; }
+.fpl-row.passed { opacity: 0.4; }
+.fpl-wpt { font-family: 'Orbitron', sans-serif; font-size: 13px; font-weight: 600; color: #5a6860; letter-spacing: 0.05em; }
+.fpl-row.active-wpt .fpl-wpt { color: #ff44cc; text-shadow: 0 0 8px rgba(255,68,204,0.5); }
+.fpl-cell { text-align: right; font-size: 10px; color: #4a5450; letter-spacing: 0.05em; }
+.fpl-row.active-wpt .fpl-cell { color: #8a9890; }
+
+/* GTN softkeys */
+.softkey-bar { background: #080c0a; border-top: 1px solid #1e2422; display: flex; padding: 6px 8px; gap: 4px; }
+.softkey {
+    flex: 1; padding: 6px 4px; text-align: center; font-size: 8px; letter-spacing: 0.1em;
+    color: #3a4440; background: #0c100e; border: 1px solid #1e2422; border-radius: 2px;
+    cursor: pointer; text-transform: uppercase; transition: all 0.12s;
+}
+.softkey:hover { color: #00ff9d88; border-color: #00ff9d33; }
+.softkey.active { color: #00ff9d; border-color: #00ff9d88; background: #0d1a12; text-shadow: 0 0 6px rgba(0,255,157,0.5); }
+
+/* ── GFC 700 Panel ── */
+.gfc-wrap {
+    width: 100%;
+    max-width: 520px;
+    margin: 0 auto;
+}
+.gfc-annunciator {
+    background: #080a09;
+    border: 1px solid #1a1f1e;
+    border-radius: 4px 4px 0 0;
+    padding: 6px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+}
+.gfc-ann-mode {
+    flex: 1; text-align: center; padding: 4px 2px;
+    font-family: 'Orbitron', sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 0.08em;
+    color: #333; transition: color 0.15s, text-shadow 0.15s;
+}
+.gfc-ann-mode.engaged { color: #00ff9d; text-shadow: 0 0 8px #00ff9d, 0 0 20px rgba(0,255,157,0.4); }
+.gfc-ann-mode.armed { color: #00d4ff; text-shadow: 0 0 6px #00d4ff; }
+.gfc-ann-mode.active-ap { color: #ffaa00; text-shadow: 0 0 8px #ffaa00, 0 0 20px rgba(255,170,0,0.4); }
+
+.gfc-readout-strip {
+    background: #090b0a;
+    border-left: 1px solid #1a1f1e;
+    border-right: 1px solid #1a1f1e;
+    padding: 5px 16px;
+    display: flex;
+    justify-content: space-between;
+}
+.gfc-readout { display: flex; flex-direction: column; align-items: center; gap: 1px; }
+.gfc-readout-label { font-size: 8px; letter-spacing: 0.2em; color: #3a4040; text-transform: uppercase; }
+.gfc-readout-label.active { color: #00ff9d88; }
+.gfc-readout-val { font-family: 'Orbitron', sans-serif; font-size: 15px; font-weight: 600; color: #1e2422; letter-spacing: 0.05em; transition: color 0.2s; }
+.gfc-readout-val.active { color: #00ff9d; text-shadow: 0 0 10px rgba(0,255,157,0.5); }
+.gfc-readout-unit { font-size: 7px; letter-spacing: 0.15em; color: #2a3030; }
+.gfc-readout-unit.active { color: #00ff9d44; }
+
+.gfc-controller {
+    background: #1c1f1e;
+    border: 1px solid #2a2e2d;
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+    padding: 14px 12px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.8), inset 0 1px 0 #2e3432;
+}
+.gfc-btn-row { display: flex; gap: 6px; align-items: center; justify-content: center; flex-wrap: wrap; }
+.gfc-btn-group { display: flex; gap: 4px; }
+.gfc-btn-divider { width: 1px; height: 44px; background: linear-gradient(to bottom, transparent, #2e3432, transparent); margin: 0 4px; }
+.gfc-btn {
+    position: relative; width: 52px; height: 44px;
+    background: #1a1e1d; border: 1px solid #2e3432; border-radius: 3px;
+    cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+    transition: all 0.1s; outline: none; -webkit-tap-highlight-color: transparent;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.04);
+}
+.gfc-btn:active { transform: translateY(1px); }
+.gfc-btn-label { font-family: 'Orbitron', sans-serif; font-size: 10px; font-weight: 600; letter-spacing: 0.05em; color: #4a5250; pointer-events: none; line-height: 1; }
+.gfc-btn-sub { font-size: 6.5px; letter-spacing: 0.12em; color: #2e3432; pointer-events: none; text-transform: uppercase; }
+.gfc-btn.engaged { background: #003d25; border-color: #00ff9d44; box-shadow: 0 0 8px rgba(0,255,157,0.2), 0 2px 4px rgba(0,0,0,0.4); }
+.gfc-btn.engaged .gfc-btn-label { color: #00ff9d; text-shadow: 0 0 8px rgba(0,255,157,0.8); }
+.gfc-btn.engaged .gfc-btn-sub { color: #00ff9d44; }
+.gfc-btn.armed { background: #002a38; border-color: #00d4ff55; }
+.gfc-btn.armed .gfc-btn-label { color: #00d4ff; text-shadow: 0 0 6px rgba(0,212,255,0.7); }
+.gfc-btn-ap { width: 60px; background: #1a0808; border-color: #3a1a1a; }
+.gfc-btn-ap.engaged { background: #3a0808; border-color: #ff4444; box-shadow: 0 0 10px rgba(255,68,68,0.3); }
+.gfc-btn-ap.engaged .gfc-btn-label { color: #ff4444; text-shadow: 0 0 8px rgba(255,68,68,0.9); }
+.gfc-btn-fd.engaged { background: #1f1500; border-color: #ffaa0044; }
+.gfc-btn-fd.engaged .gfc-btn-label { color: #ffaa00; text-shadow: 0 0 8px rgba(255,170,0,0.8); }
+
+/* Engine / Systems gauges */
+.sys-section { margin-top: 12px; padding: 10px; background: #090b0a; border: 1px solid #1a1f1e; border-radius: 4px; }
+.sys-label { font-size: 8px; letter-spacing: 0.2em; color: #3a4440; text-transform: uppercase; margin-bottom: 8px; }
+.sys-row { display: flex; justify-content: space-around; }
+.sys-gauge { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.sys-gauge-val { font-family: 'Orbitron', sans-serif; font-size: 14px; font-weight: 600; color: #00ff9d; }
+.sys-gauge-label { font-size: 7px; color: #3a4440; letter-spacing: 0.15em; text-transform: uppercase; }
+.xpdr-row { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; }
+.xpdr-code { font-family: 'Orbitron', sans-serif; font-size: 16px; font-weight: 600; color: #00ff9d; }
+.xpdr-mode { font-size: 9px; color: #3a4440; letter-spacing: 0.1em; }
+
+/* ── Comms Drawer ── */
+.comms-drawer {
+    background: #0c0f0e;
+    border-top: 1px solid #1e2422;
+    max-height: 40vh;
+    overflow-y: auto;
+    padding: 0.75rem;
+    transition: max-height 0.3s;
+    flex-shrink: 0;
+}
+.comms-drawer.collapsed { max-height: 2.2rem; overflow: hidden; }
+.drawer-toggle { color: #3a4440; font-size: 10px; letter-spacing: 0.15em; cursor: pointer; margin-bottom: 0.5rem; text-transform: uppercase; }
+.atc-message { background: #080a09; border-left: 3px solid #ffaa00; padding: 0.75rem; margin-bottom: 0.75rem; font-size: 0.85rem; }
+.atc-label { color: #ffaa00; font-size: 0.7rem; margin-bottom: 0.25rem; }
+.response-input { display: flex; gap: 0.5rem; margin-top: 0.5rem; }
+.response-input input { flex: 1; background: #080a09; border: 1px solid #1e2422; color: #e0e0e0; padding: 0.5rem; font-family: inherit; font-size: 0.85rem; }
+.response-input button { background: #00ff9d; color: #060807; border: none; padding: 0.5rem 1rem; font-family: inherit; cursor: pointer; font-weight: bold; }
+.option-btn {
+    display: block; width: 100%; text-align: left; background: #080a09; border: 1px solid #1e2422;
+    color: #e0e0e0; padding: 0.6rem; font-family: inherit; font-size: 0.85rem; cursor: pointer; margin-bottom: 0.4rem; transition: border-color 0.2s;
+}
+.option-btn:hover { border-color: #00d4ff; }
+.coaching-box { background: rgba(255,170,0,0.1); border-left: 3px solid #ffaa00; padding: 0.75rem; margin-top: 0.5rem; font-size: 0.8rem; color: #ffaa00; }
+
+/* ── Phase Controls (dev) ── */
+.phase-controls { display: flex; gap: 0.4rem; padding: 0.4rem 0.75rem; background: #060808; border-top: 1px solid #0e1210; flex-shrink: 0; }
+.phase-btn { background: transparent; border: 1px solid #1e2422; color: #3a4440; padding: 0.25rem 0.5rem; font-family: inherit; font-size: 0.65rem; cursor: pointer; }
+.phase-btn:hover { border-color: #00d4ff; color: #00d4ff; }
+
+/* ── Scanlines ── */
+.scanlines {
+    position: fixed; inset: 0; pointer-events: none; z-index: 100;
+    background: repeating-linear-gradient(to bottom, transparent 0px, transparent 3px, rgba(0,0,0,0.08) 3px, rgba(0,0,0,0.08) 4px);
 }
 {% endblock %}
 
 {% block content %}
-<div class="flight-hud" x-data="flightSession()" x-init="startPolling()">
-    <!-- Autopilot Annunciator Bar -->
+<div class="scanlines"></div>
+
+<div class="flight-hud" x-data="flightSession()" x-init="init()">
+
+    <!-- AP Annunciator Bar -->
     <div class="annunciator-bar">
-        <span class="ap-modes" x-text="apModes"></span>
-        <span class="phase-badge" x-text="phase"></span>
-        <span style="color: var(--text-dim)" x-text="'T' + tick"></span>
+        <template x-for="mode in ['AP','HDG','NAV','APR','VS','ALT','FLC']" :key="mode">
+            <div>
+                <div class="ann-mode"
+                     :class="{
+                        'ap-on': mode === 'AP' && state.autopilot?.engaged,
+                        'engaged': mode !== 'AP' && (state.autopilot?.modes || []).includes(mode),
+                        'armed': mode === 'ALT' && state.autopilot?.engaged && !(state.autopilot?.modes || []).includes('ALT')
+                     }"
+                     x-text="mode"></div>
+                <template x-if="mode !== 'FLC'"><div class="ann-sep"></div></template>
+            </div>
+        </template>
+        <div style="margin-left: auto; display: flex; align-items: center; gap: 8px;">
+            <span style="color: #ffaa00; font-family: Orbitron, sans-serif; font-size: 9px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase;" x-text="phase"></span>
+            <span style="color: #3a4440; font-size: 9px;" x-text="'T' + tick"></span>
+        </div>
     </div>
 
-    <!-- Instrument Panel -->
-    <div class="panel-container">
-        <div class="instrument-panel">
-            <div class="pfd">
-                <div class="pfd-row">
-                    <div>
-                        <div class="pfd-value" x-text="state.indicated_airspeed + ''">0</div>
-                        <div class="pfd-label">KIAS</div>
+    <!-- Panel Navigation Tabs -->
+    <div class="panel-nav">
+        <template x-for="(p, i) in ['PFD', 'FMS', 'SYS']" :key="p">
+            <div style="display: flex; align-items: center; gap: 4px; cursor: pointer;" @click="activePanel = i">
+                <div class="panel-dot" :class="{ active: activePanel === i }"></div>
+                <div class="panel-label" :class="{ active: activePanel === i }" x-text="p"></div>
+            </div>
+        </template>
+    </div>
+
+    <!-- Swipeable Instrument Panels -->
+    <div class="panel-container"
+         @touchstart="touchStartX = $event.touches[0].clientX"
+         @touchend="handleSwipe($event)">
+        <div class="panel-track" :style="'transform: translateX(-' + (activePanel * 33.333) + '%)'">
+
+            <!-- ════ PANEL 1: PFD ════ -->
+            <div class="panel-page" style="display: flex; align-items: center; justify-content: center; padding: 8px;">
+                <div class="pfd-wrap">
+                    <canvas id="pfd-canvas"></canvas>
+                    <div class="hdg-row">
+                        <canvas id="hdg-canvas"></canvas>
                     </div>
-                    <div>
-                        <div class="pfd-value" x-text="state.altitude + ''">0</div>
-                        <div class="pfd-label">ALT</div>
-                    </div>
-                </div>
-                <div class="pfd-row">
-                    <div>
-                        <div class="pfd-value" x-text="Math.round(state.heading) + '°'">0°</div>
-                        <div class="pfd-label">HDG</div>
-                    </div>
-                    <div>
-                        <div class="pfd-value" x-text="state.vertical_speed + ''">0</div>
-                        <div class="pfd-label">VS FPM</div>
-                    </div>
-                </div>
-                <div class="pfd-row">
-                    <div>
-                        <div class="pfd-value" style="font-size: 1.2rem; color: var(--text-dim)" x-text="state.nav?.next_waypoint || '—'">—</div>
-                        <div class="pfd-label">NEXT WPT</div>
-                    </div>
-                    <div>
-                        <div class="pfd-value" style="font-size: 1.2rem; color: var(--text-dim)" x-text="(state.nav?.distance_to_next || 0) + ' NM'">0 NM</div>
-                        <div class="pfd-label">DIST</div>
+                    <div class="pfd-info-strip">
+                        <div>GS <span x-text="Math.round(state.indicated_airspeed * 1.08)"></span> KT</div>
+                        <div x-text="'{{ session.scenario_template.departure_icao }}' + ' → ' + '{{ session.scenario_template.destination_icao }}'"></div>
+                        <div>WPT <span style="color: #ff44cc;" x-text="state.nav?.next_waypoint || '—'"></span> <span x-text="Math.round(state.nav?.distance_to_next || 0) + ' NM'"></span></div>
                     </div>
                 </div>
             </div>
-        </div>
+
+            <!-- ════ PANEL 2: GTN 750 / FMS ════ -->
+            <div class="panel-page" style="display: flex; align-items: flex-start; justify-content: center; padding: 8px;">
+                <div class="gtn-unit">
+                    <div class="gtn-title-bar">
+                        <div class="gtn-title-left">GTN 750</div>
+                        <div class="gtn-title-center">CLEARED DIRECT</div>
+                        <div class="gtn-title-right" x-text="zuluTime"></div>
+                    </div>
+                    <div class="gtn-tabs">
+                        <div class="gtn-tab" :class="{ active: gtnTab === 'com' }" @click="gtnTab = 'com'">COM/NAV</div>
+                        <div class="gtn-tab" :class="{ active: gtnTab === 'fpl' }" @click="gtnTab = 'fpl'">FPL</div>
+                        <div class="gtn-tab" :class="{ active: gtnTab === 'nrst' }" @click="gtnTab = 'nrst'">NRST</div>
+                    </div>
+                    <div class="gtn-screen">
+
+                        <!-- COM/NAV -->
+                        <div class="gtn-page" :class="{ active: gtnTab === 'com' }">
+                            <div class="freq-section">
+                                <div class="freq-section-label">COM 1</div>
+                                <div class="freq-row">
+                                    <div class="freq-half">
+                                        <div class="freq-sublabel active-lbl">ACTIVE</div>
+                                        <div class="freq-val active" x-text="state.nav?.comm_active || '---'"></div>
+                                    </div>
+                                    <button class="flip-btn" @click="flipComm()">&#8644;</button>
+                                    <div class="freq-half" style="text-align:right">
+                                        <div class="freq-sublabel">STANDBY</div>
+                                        <div class="freq-val standby" x-text="state.nav?.comm_standby || '---'"></div>
+                                    </div>
+                                </div>
+                                <div class="com-strip">
+                                    <span>SQWK <span x-text="state.transponder?.code || '1200'"></span> &middot; <span x-text="(state.transponder?.mode || 'ALT').toUpperCase()"></span></span>
+                                </div>
+                            </div>
+                            <div class="freq-section">
+                                <div class="freq-section-label">NAV 1</div>
+                                <div class="freq-row">
+                                    <div class="freq-half">
+                                        <div class="freq-sublabel active-lbl">ACTIVE</div>
+                                        <div class="freq-val nav-active" x-text="state.nav?.active_frequency || '---'"></div>
+                                    </div>
+                                    <button class="flip-btn" @click="flipNav()">&#8644;</button>
+                                    <div class="freq-half" style="text-align:right">
+                                        <div class="freq-sublabel">STANDBY</div>
+                                        <div class="freq-val nav-standby" x-text="state.nav?.standby_frequency || '---'"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- FPL -->
+                        <div class="gtn-page" :class="{ active: gtnTab === 'fpl' }">
+                            <div class="fpl-header">
+                                <div class="fpl-title" x-text="'{{ session.scenario_template.departure_icao }} → {{ session.scenario_template.destination_icao }}'"></div>
+                                <div class="fpl-total" x-text="Math.round(state.nav?.distance_to_next || 0) + ' NM to next'"></div>
+                            </div>
+                            <div class="fpl-cols">
+                                <div class="fpl-col-label">WPT</div>
+                                <div class="fpl-col-label">ALT</div>
+                                <div class="fpl-col-label">DTK</div>
+                                <div class="fpl-col-label">DIS</div>
+                            </div>
+                            <template x-for="(wpt, idx) in (state.nav?.waypoints || [])" :key="idx">
+                                <div class="fpl-row" :class="{ 'active-wpt': wpt === state.nav?.next_waypoint, 'passed': (state.nav?.waypoints || []).indexOf(wpt) < (state.nav?.waypoints || []).indexOf(state.nav?.next_waypoint) }">
+                                    <div class="fpl-wpt" x-text="wpt"></div>
+                                    <div class="fpl-cell" x-text="Math.round(state.autopilot?.selected_altitude || 0)"></div>
+                                    <div class="fpl-cell" x-text="Math.round(state.heading) + '°'"></div>
+                                    <div class="fpl-cell" x-text="wpt === state.nav?.next_waypoint ? Math.round(state.nav?.distance_to_next || 0) + ' NM' : '—'"></div>
+                                </div>
+                            </template>
+                        </div>
+
+                        <!-- NRST (placeholder) -->
+                        <div class="gtn-page" :class="{ active: gtnTab === 'nrst' }">
+                            <div class="fpl-header">
+                                <div class="fpl-title">NEAREST AIRPORTS</div>
+                            </div>
+                            <div style="color: #3a4440; font-size: 10px; padding: 20px; text-align: center; letter-spacing: 0.1em;">No nearest data available</div>
+                        </div>
+                    </div>
+                    <div class="softkey-bar">
+                        <div class="softkey active">DIRECT&rarr;</div>
+                        <div class="softkey">INFO</div>
+                        <div class="softkey">MSG</div>
+                        <div class="softkey">XPDR</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ════ PANEL 3: GFC 700 + SYSTEMS ════ -->
+            <div class="panel-page" style="display: flex; flex-direction: column; align-items: center; padding: 8px; gap: 12px;">
+                <div class="gfc-wrap">
+                    <!-- GFC Annunciator -->
+                    <div class="gfc-annunciator">
+                        <template x-for="mode in ['AP','FD','HDG','NAV','APR','VS','ALT','FLC','VNV']" :key="mode">
+                            <div>
+                                <div class="gfc-ann-mode"
+                                     :class="{
+                                        'active-ap': mode === 'AP' && state.autopilot?.engaged,
+                                        'engaged': mode === 'FD' || (mode !== 'AP' && mode !== 'FD' && (state.autopilot?.modes || []).includes(mode))
+                                     }"
+                                     x-text="mode"></div>
+                                <template x-if="mode !== 'VNV'"><div class="ann-sep" style="display:inline-block;width:1px;height:18px;background:#1e2322;vertical-align:middle;"></div></template>
+                            </div>
+                        </template>
+                    </div>
+
+                    <!-- Readouts -->
+                    <div class="gfc-readout-strip">
+                        <div class="gfc-readout">
+                            <div class="gfc-readout-label" :class="{ active: (state.autopilot?.modes || []).includes('HDG') }">SEL HDG</div>
+                            <div class="gfc-readout-val" :class="{ active: (state.autopilot?.modes || []).includes('HDG') }" x-text="String(Math.round(state.autopilot?.selected_heading || 0)).padStart(3,'0') + '°'"></div>
+                        </div>
+                        <div class="gfc-readout">
+                            <div class="gfc-readout-label" :class="{ active: (state.autopilot?.modes || []).includes('ALT') }">SEL ALT</div>
+                            <div class="gfc-readout-val" :class="{ active: (state.autopilot?.modes || []).includes('ALT') }" x-text="state.autopilot?.selected_altitude || 0"></div>
+                            <div class="gfc-readout-unit" :class="{ active: (state.autopilot?.modes || []).includes('ALT') }">FT</div>
+                        </div>
+                        <div class="gfc-readout">
+                            <div class="gfc-readout-label" :class="{ active: (state.autopilot?.modes || []).includes('VS') }">SEL VS</div>
+                            <div class="gfc-readout-val" :class="{ active: (state.autopilot?.modes || []).includes('VS') }" x-text="(state.autopilot?.selected_vs || 0) >= 0 ? '+' + (state.autopilot?.selected_vs || 0) : (state.autopilot?.selected_vs || 0)"></div>
+                            <div class="gfc-readout-unit">FPM</div>
+                        </div>
+                    </div>
+
+                    <!-- AP Buttons -->
+                    <div class="gfc-controller">
+                        <div class="gfc-btn-row">
+                            <div class="gfc-btn-group">
+                                <button class="gfc-btn gfc-btn-ap" :class="{ engaged: state.autopilot?.engaged }">
+                                    <span class="gfc-btn-label">AP</span>
+                                    <span class="gfc-btn-sub">master</span>
+                                </button>
+                                <button class="gfc-btn gfc-btn-fd engaged">
+                                    <span class="gfc-btn-label">FD</span>
+                                    <span class="gfc-btn-sub">flight dir</span>
+                                </button>
+                            </div>
+                            <div class="gfc-btn-divider"></div>
+                            <div class="gfc-btn-group">
+                                <template x-for="m in [{id:'HDG',sub:'heading'},{id:'NAV',sub:'nav track'},{id:'APR',sub:'approach'}]" :key="m.id">
+                                    <button class="gfc-btn" :class="{ engaged: (state.autopilot?.modes || []).includes(m.id) }">
+                                        <span class="gfc-btn-label" x-text="m.id"></span>
+                                        <span class="gfc-btn-sub" x-text="m.sub"></span>
+                                    </button>
+                                </template>
+                            </div>
+                            <div class="gfc-btn-divider"></div>
+                            <div class="gfc-btn-group">
+                                <template x-for="m in [{id:'VS',sub:'vert spd'},{id:'ALT',sub:'alt hold'},{id:'FLC',sub:'spd ref'}]" :key="m.id">
+                                    <button class="gfc-btn" :class="{ engaged: (state.autopilot?.modes || []).includes(m.id) }">
+                                        <span class="gfc-btn-label" x-text="m.id"></span>
+                                        <span class="gfc-btn-sub" x-text="m.sub"></span>
+                                    </button>
+                                </template>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Engine / Systems -->
+                <div class="gfc-wrap">
+                    <div class="sys-section">
+                        <div class="sys-label">ENGINE</div>
+                        <div class="sys-row">
+                            <div class="sys-gauge">
+                                <div class="sys-gauge-val" x-text="state.engine?.rpm || 0"></div>
+                                <div class="sys-gauge-label">RPM</div>
+                            </div>
+                            <div class="sys-gauge">
+                                <div class="sys-gauge-val" x-text="(state.engine?.oil_pressure || 0) + ' PSI'"></div>
+                                <div class="sys-gauge-label">OIL</div>
+                            </div>
+                            <div class="sys-gauge">
+                                <div class="sys-gauge-val" x-text="(state.engine?.fuel_gals_remaining || 0).toFixed(1) + ' GAL'"></div>
+                                <div class="sys-gauge-label">FUEL</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="sys-section">
+                        <div class="sys-label">TRANSPONDER</div>
+                        <div class="xpdr-row">
+                            <div class="xpdr-code" x-text="state.transponder?.code || '1200'"></div>
+                            <div class="xpdr-mode" x-text="'MODE ' + (state.transponder?.mode || 'STBY').toUpperCase()"></div>
+                        </div>
+                    </div>
+                    <div class="sys-section">
+                        <div class="sys-label">ENVIRONMENT</div>
+                        <div class="sys-row">
+                            <div class="sys-gauge">
+                                <div class="sys-gauge-val" x-text="(state.environment?.wind_direction || 0) + '° / ' + (state.environment?.wind_knots || 0)"></div>
+                                <div class="sys-gauge-label">WIND</div>
+                            </div>
+                            <div class="sys-gauge">
+                                <div class="sys-gauge-val" x-text="(state.environment?.visibility || 0) + ' SM'"></div>
+                                <div class="sys-gauge-label">VIS</div>
+                            </div>
+                            <div class="sys-gauge">
+                                <div class="sys-gauge-val" x-text="(state.environment?.ceiling_ft || 0) + ' FT'"></div>
+                                <div class="sys-gauge-label">CEILING</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div><!-- /panel-track -->
     </div>
 
     <!-- Phase Control Bar (dev/testing) -->
@@ -233,25 +629,22 @@
                     <div x-text="evt.payload.atc_text || evt.payload.narration || evt.payload.title || 'Event'"></div>
                 </div>
 
-                <!-- Text input response -->
                 <template x-if="evt.status === 'awaiting_response' && evt.payload.required_response_type === 'text_input'">
                     <div class="response-input">
-                        <input type="text" x-ref="'resp_' + evt.id" placeholder="Your readback..." @keydown.enter="submitResponse(evt.id, $event.target.value)">
-                        <button @click="submitResponse(evt.id, $refs['resp_' + evt.id]?.value || '')">XMIT</button>
+                        <input type="text" :id="'resp_' + evt.id" placeholder="Your readback..." @keydown.enter="submitResponse(evt.id, $event.target.value)">
+                        <button @click="submitResponse(evt.id, document.getElementById('resp_' + evt.id)?.value || '')">XMIT</button>
                     </div>
                 </template>
 
-                <!-- Multiple choice response -->
                 <template x-if="evt.status === 'awaiting_response' && evt.payload.decision_points">
                     <div>
-                        <div style="color: var(--accent-cyan); margin: 0.5rem 0; font-size: 0.8rem" x-text="evt.payload.decision_points[0]?.prompt"></div>
+                        <div style="color: #00d4ff; margin: 0.5rem 0; font-size: 0.8rem" x-text="evt.payload.decision_points[0]?.prompt"></div>
                         <template x-for="opt in evt.payload.decision_points[0]?.options || []">
                             <button class="option-btn" @click="submitResponse(evt.id, opt.text)" x-text="opt.text"></button>
                         </template>
                     </div>
                 </template>
 
-                <!-- Coaching feedback -->
                 <template x-if="evt.coaching">
                     <div class="coaching-box" x-text="evt.coaching"></div>
                 </template>
@@ -259,7 +652,7 @@
         </template>
 
         <template x-if="events.length === 0">
-            <div style="color: var(--text-dim); font-size: 0.8rem">No active comms</div>
+            <div style="color: #3a4440; font-size: 0.8rem">No active comms</div>
         </template>
     </div>
 </div>
@@ -267,6 +660,196 @@
 
 {% block extra_js %}
 <script>
+// ══════════════════════════════════════
+//  PFD CANVAS RENDERING ENGINE
+// ══════════════════════════════════════
+
+function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
+function drawRoundRect(ctx, x, y, w, h, r, fill, stroke) {
+    ctx.beginPath();
+    ctx.roundRect(x, y, w, h, r);
+    if (fill) { ctx.fillStyle = fill; ctx.fill(); }
+    if (stroke) { ctx.strokeStyle = stroke; ctx.stroke(); }
+}
+
+const BUGS = { Vx: 110, Vy: 128, Va: 156, Vno: 178, Vne: 200 };
+
+// Attitude indicator
+function drawATI(ctx, ati, pitch, bank) {
+    const cx = ati.x + ati.w / 2, cy = ati.y + ati.h / 2;
+    const pitchPx = 5.5;
+    ctx.save();
+    ctx.beginPath(); ctx.rect(ati.x, ati.y, ati.w, ati.h); ctx.clip();
+    ctx.translate(cx, cy); ctx.rotate(bank * Math.PI / 180); ctx.translate(-cx, -cy);
+    const horizY = cy + pitch * pitchPx;
+    const skyGrad = ctx.createLinearGradient(0, horizY - ati.h, 0, horizY);
+    skyGrad.addColorStop(0, '#0a1e38'); skyGrad.addColorStop(1, '#1a4a78');
+    ctx.fillStyle = skyGrad; ctx.fillRect(ati.x - 200, ati.y - 200, ati.w + 400, horizY - ati.y + 200);
+    const gndGrad = ctx.createLinearGradient(0, horizY, 0, horizY + ati.h);
+    gndGrad.addColorStop(0, '#5a3010'); gndGrad.addColorStop(1, '#2a1806');
+    ctx.fillStyle = gndGrad; ctx.fillRect(ati.x - 200, horizY, ati.w + 400, ati.h + 200);
+    ctx.strokeStyle = '#00ff9d'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(ati.x - 200, horizY); ctx.lineTo(ati.x + ati.w + 200, horizY); ctx.stroke();
+    ctx.font = '10px Share Tech Mono'; ctx.textAlign = 'right';
+    for (let deg = -30; deg <= 30; deg += 5) {
+        if (deg === 0) continue;
+        const y = horizY - deg * pitchPx;
+        const isMajor = deg % 10 === 0;
+        const lineW = isMajor ? ati.w * 0.22 : ati.w * 0.13;
+        ctx.strokeStyle = 'rgba(255,255,255,0.55)'; ctx.lineWidth = isMajor ? 1.5 : 1;
+        ctx.beginPath(); ctx.moveTo(cx - lineW/2, y); ctx.lineTo(cx + lineW/2, y); ctx.stroke();
+        if (isMajor) {
+            ctx.fillStyle = 'rgba(255,255,255,0.6)';
+            ctx.fillText(Math.abs(deg), cx - lineW/2 - 4, y + 3.5);
+            ctx.textAlign = 'left'; ctx.fillText(Math.abs(deg), cx + lineW/2 + 4, y + 3.5);
+            ctx.textAlign = 'right';
+        }
+    }
+    ctx.restore();
+    // Bank arc
+    const arcR = ati.w * 0.42, arcCX = cx, arcCY = ati.y + 18;
+    ctx.save(); ctx.strokeStyle = 'rgba(255,255,255,0.3)'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.arc(arcCX, arcCY + arcR - 18, arcR, Math.PI * 1.17, Math.PI * 1.83); ctx.stroke();
+    [10,20,30,45,60].forEach(deg => {
+        [-1,1].forEach(side => {
+            const a = Math.PI*1.5 + side*deg*Math.PI/180;
+            const r1 = arcR, r2 = arcR - (deg%30===0?8:5);
+            ctx.beginPath(); ctx.moveTo(arcCX+Math.cos(a)*r1, arcCY+arcR-18+Math.sin(a)*r1);
+            ctx.lineTo(arcCX+Math.cos(a)*r2, arcCY+arcR-18+Math.sin(a)*r2);
+            ctx.strokeStyle = 'rgba(255,255,255,0.5)'; ctx.lineWidth = deg%30===0?1.5:1; ctx.stroke();
+        });
+    });
+    ctx.save(); ctx.translate(arcCX, arcCY+arcR-18); ctx.rotate(bank*Math.PI/180); ctx.translate(-arcCX, -(arcCY+arcR-18));
+    ctx.fillStyle = 'rgba(255,255,255,0.8)'; ctx.beginPath();
+    ctx.moveTo(arcCX, arcCY+arcR-18-arcR+2); ctx.lineTo(arcCX-5, arcCY+arcR-18-arcR+11); ctx.lineTo(arcCX+5, arcCY+arcR-18-arcR+11);
+    ctx.closePath(); ctx.fill(); ctx.restore();
+    // Aircraft symbol
+    const symY = ati.y + ati.h/2, symX = cx;
+    ctx.strokeStyle = '#ffcc00'; ctx.lineWidth = 2.5; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(symX-40, symY); ctx.lineTo(symX-18, symY); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(symX+18, symY); ctx.lineTo(symX+40, symY); ctx.stroke();
+    ctx.beginPath(); ctx.arc(symX, symY, 4, 0, Math.PI*2); ctx.lineWidth = 2; ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(symX-7, symY-8); ctx.lineTo(symX+7, symY-8); ctx.lineWidth = 2; ctx.stroke();
+}
+
+// Airspeed tape
+function drawIASTape(ctx, r, ias) {
+    const {x,y,w,h} = r, cy = y+h/2, pxPerKt = 4.0;
+    ctx.fillStyle = 'rgba(0,0,0,0.72)'; ctx.fillRect(x,y,w,h);
+    ctx.save(); ctx.beginPath(); ctx.rect(x,y,w,h); ctx.clip();
+    const visRange = h/pxPerKt/2+10;
+    [{lo:0,hi:60,c:'rgba(255,68,68,0.15)'},{lo:60,hi:110,c:'rgba(255,255,255,0.04)'},{lo:110,hi:178,c:'rgba(0,255,100,0.04)'},{lo:178,hi:200,c:'rgba(255,170,0,0.08)'},{lo:200,hi:999,c:'rgba(255,68,68,0.12)'}].forEach(b => {
+        ctx.fillStyle = b.c; ctx.fillRect(x+w*0.7, cy-(b.hi-ias)*pxPerKt, w*0.12, (b.hi-b.lo)*pxPerKt);
+    });
+    ctx.font = '10px Share Tech Mono'; ctx.textAlign = 'right';
+    for (let spd = Math.floor((ias-visRange)/10)*10; spd <= ias+visRange; spd += 10) {
+        if (spd < 0) continue;
+        const tickY = cy-(spd-ias)*pxPerKt, isMajor = spd%20===0;
+        ctx.strokeStyle = isMajor?'rgba(255,255,255,0.7)':'rgba(255,255,255,0.3)';
+        ctx.lineWidth = isMajor?1.5:1; const tickLen = isMajor?w*0.38:w*0.22;
+        ctx.beginPath(); ctx.moveTo(x+w-1, tickY); ctx.lineTo(x+w-1-tickLen, tickY); ctx.stroke();
+        if (isMajor && spd > 0) { ctx.fillStyle='rgba(220,240,220,0.85)'; ctx.fillText(spd, x+w-tickLen-4, tickY+3.5); }
+    }
+    Object.entries(BUGS).forEach(([name, bugSpd]) => {
+        const bugY = cy-(bugSpd-ias)*pxPerKt;
+        if (bugY < y || bugY > y+h) return;
+        ctx.fillStyle = name==='Vne'?'#ff4444':name==='Vno'?'#ffaa00':'#00ff9d';
+        ctx.beginPath(); ctx.moveTo(x+w, bugY); ctx.lineTo(x+w-10, bugY-4); ctx.lineTo(x+w-10, bugY+4); ctx.closePath(); ctx.fill();
+    });
+    ctx.restore();
+    const boxH=30, boxW=w, boxY=cy-boxH/2;
+    drawRoundRect(ctx, x, boxY, boxW-6, boxH, 2, '#0a1208', '#00ff9d');
+    ctx.font = 'bold 18px Orbitron, Share Tech Mono'; ctx.fillStyle = '#00ff9d'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(Math.round(ias), x+(boxW-6)/2, cy+0.5); ctx.textBaseline = 'alphabetic';
+}
+
+// Altitude tape
+function drawAltTape(ctx, r, alt, selAlt) {
+    const {x,y,w,h} = r, cy = y+h/2, pxPer100=5.5, pxPerFt=pxPer100/100;
+    ctx.fillStyle = 'rgba(0,0,0,0.72)'; ctx.fillRect(x,y,w,h);
+    ctx.save(); ctx.beginPath(); ctx.rect(x,y,w,h); ctx.clip();
+    const visRange = h/pxPerFt/2+200;
+    ctx.font = '10px Share Tech Mono'; ctx.textAlign = 'left';
+    for (let a = Math.floor((alt-visRange)/100)*100; a <= alt+visRange; a += 100) {
+        const tickY = cy-(a-alt)*pxPerFt, isMajor = a%500===0;
+        ctx.strokeStyle = isMajor?'rgba(255,255,255,0.7)':'rgba(255,255,255,0.3)';
+        ctx.lineWidth = isMajor?1.5:1; const tickLen = isMajor?w*0.38:w*0.22;
+        ctx.beginPath(); ctx.moveTo(x+1, tickY); ctx.lineTo(x+1+tickLen, tickY); ctx.stroke();
+        if (isMajor) { ctx.fillStyle='rgba(220,240,220,0.85)'; ctx.fillText(a>=0?a:'', x+tickLen+4, tickY+3.5); }
+    }
+    const selAltY = cy-(selAlt-alt)*pxPerFt;
+    if (selAltY >= y && selAltY <= y+h) {
+        ctx.fillStyle = 'rgba(0,212,255,0.9)'; ctx.beginPath();
+        ctx.moveTo(x+1,selAltY); ctx.lineTo(x+14,selAltY-6); ctx.lineTo(x+w-2,selAltY-6); ctx.lineTo(x+w-2,selAltY+6); ctx.lineTo(x+14,selAltY+6);
+        ctx.closePath(); ctx.fill();
+        ctx.font='bold 9px Orbitron'; ctx.fillStyle='#000'; ctx.textAlign='center'; ctx.fillText(selAlt, x+w/2+6, selAltY+3); ctx.textAlign='left';
+    }
+    ctx.restore();
+    const boxH=30, boxW=w, boxY=cy-boxH/2;
+    drawRoundRect(ctx, x+5, boxY, boxW-4, boxH, 2, '#0a1208', '#00ff9d');
+    ctx.font = 'bold 17px Orbitron, Share Tech Mono'; ctx.fillStyle = '#00ff9d'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(Math.round(alt), x+(boxW-4)/2+5, cy); ctx.textBaseline = 'alphabetic';
+}
+
+// VSI
+function drawVSI(ctx, r, vs) {
+    const {x,y,w,h} = r, cx = x+w/2, cy = y+h/2, maxVS=2000, pxPerFpm=(h*0.42)/maxVS;
+    ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(x,y,w,h);
+    ctx.strokeStyle = '#1e2422'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(cx, y+h*0.08); ctx.lineTo(cx, y+h*0.92); ctx.stroke();
+    [500,1000,2000].forEach(fpm => {
+        [-1,1].forEach(dir => {
+            const tickY = cy-dir*fpm*pxPerFpm;
+            ctx.strokeStyle='rgba(255,255,255,0.4)'; ctx.lineWidth=1;
+            ctx.beginPath(); ctx.moveTo(x+2, tickY); ctx.lineTo(x+w-2, tickY); ctx.stroke();
+            if (fpm>=1000) { ctx.font='7px Share Tech Mono'; ctx.fillStyle='rgba(200,220,200,0.5)'; ctx.textAlign='center'; ctx.fillText(fpm/100, cx, tickY+(dir>0?-2:9)); }
+        });
+    });
+    const vsClamp = clamp(vs, -maxVS, maxVS), barH = vsClamp*pxPerFpm;
+    const barColor = vs > 0 ? '#00ff9d' : '#ff8844';
+    ctx.fillStyle = barColor+'cc'; ctx.fillRect(x+w*0.25, Math.min(cy, cy-barH), w*0.5, Math.abs(barH));
+    if (Math.abs(vs)>50) {
+        ctx.font='bold 9px Share Tech Mono'; ctx.fillStyle=barColor; ctx.textAlign='center';
+        ctx.fillText(Math.round(Math.abs(vs)/100)+'\u2191', cx, clamp(vs>0?cy-barH-4:cy-barH+14, y+14, y+h-4));
+    }
+}
+
+// Heading tape
+function drawHdgTape(ctx, W, H, hdg, selHdg) {
+    const cx=W/2, pxPerDeg=W/40;
+    ctx.fillStyle = 'rgba(0,0,0,0.7)'; ctx.fillRect(0,0,W,H);
+    const visRange = (W/pxPerDeg)/2+5;
+    ctx.font='10px Share Tech Mono'; ctx.textAlign='center';
+    for (let d=Math.floor((hdg-visRange)/5)*5; d<=hdg+visRange; d+=5) {
+        const deg=((d%360)+360)%360, tickX=cx+(d-hdg)*pxPerDeg, isMajor=d%10===0;
+        ctx.strokeStyle=isMajor?'rgba(255,255,255,0.6)':'rgba(255,255,255,0.25)';
+        ctx.lineWidth=isMajor?1.5:1; ctx.beginPath(); ctx.moveTo(tickX,0); ctx.lineTo(tickX,isMajor?12:7); ctx.stroke();
+        if (isMajor) {
+            const labels={0:'N',90:'E',180:'S',270:'W',360:'N'};
+            const label=labels[deg]||String(deg).padStart(3,'0');
+            ctx.fillStyle=labels[deg]?'rgba(255,255,255,0.9)':'rgba(180,200,180,0.7)';
+            ctx.font=labels[deg]?'bold 11px Share Tech Mono':'10px Share Tech Mono';
+            ctx.fillText(label, tickX, H-5);
+        }
+    }
+    const selDiff=((selHdg-hdg+540)%360)-180, selX=cx+selDiff*pxPerDeg;
+    if (selX>10 && selX<W-10) {
+        ctx.fillStyle='rgba(0,212,255,0.9)'; ctx.beginPath();
+        ctx.moveTo(selX, H-1); ctx.lineTo(selX-7, H-12); ctx.lineTo(selX+7, H-12); ctx.closePath(); ctx.fill();
+    }
+    const boxW=52, boxH=H-2;
+    drawRoundRect(ctx, cx-boxW/2, 1, boxW, boxH, 2, '#0a1208', '#00ff9d');
+    ctx.font='bold 15px Orbitron, Share Tech Mono'; ctx.fillStyle='#00ff9d'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(String(Math.round(hdg)).padStart(3,'0'), cx, H/2+1); ctx.textBaseline='alphabetic';
+    ctx.strokeStyle='#00ff9d'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(cx,0); ctx.lineTo(cx,4); ctx.stroke();
+}
+
+
+// ══════════════════════════════════════
+//  ALPINE.JS FLIGHT SESSION
+// ══════════════════════════════════════
+
 function flightSession() {
     return {
         sessionId: {{ session.id }},
@@ -276,11 +859,100 @@ function flightSession() {
         events: [],
         drawerOpen: false,
         polling: null,
+        activePanel: 0,
+        touchStartX: 0,
+        gtnTab: 'com',
+        zuluTime: '----Z',
+
+        // PFD canvas state
+        pfdCanvas: null, pfdCtx: null,
+        hdgCanvas: null, hdgCtx: null,
+        pfdW: 0, pfdH: 0,
+        IAS: {}, ALT: {}, VSI: {}, ATI: {},
 
         get apModes() {
             const ap = this.state.autopilot || {};
             if (!ap.engaged) return 'AP OFF';
             return 'AP ' + (ap.modes || []).join(' ');
+        },
+
+        init() {
+            this.setupPFD();
+            this.startPolling();
+            this.updateZulu();
+            setInterval(() => this.updateZulu(), 1000);
+            this.renderPFD();
+        },
+
+        updateZulu() {
+            const now = new Date();
+            this.zuluTime = String(now.getUTCHours()).padStart(2,'0') + String(now.getUTCMinutes()).padStart(2,'0') + 'Z';
+        },
+
+        setupPFD() {
+            this.pfdCanvas = document.getElementById('pfd-canvas');
+            this.pfdCtx = this.pfdCanvas.getContext('2d');
+            this.hdgCanvas = document.getElementById('hdg-canvas');
+            this.hdgCtx = this.hdgCanvas.getContext('2d');
+            this.resizePFD();
+            window.addEventListener('resize', () => this.resizePFD());
+        },
+
+        resizePFD() {
+            const wrap = this.pfdCanvas.parentElement;
+            this.pfdW = wrap.clientWidth;
+            this.pfdH = Math.round(this.pfdW * 0.72);
+            this.pfdCanvas.width = this.pfdW;
+            this.pfdCanvas.height = this.pfdH;
+            this.hdgCanvas.width = this.pfdW;
+            this.hdgCanvas.height = 42;
+            const tapeW = Math.round(this.pfdW * 0.155);
+            const vsiW = Math.round(this.pfdW * 0.065);
+            this.IAS = { x:0, y:0, w:tapeW, h:this.pfdH };
+            this.ALT = { x:this.pfdW-tapeW-vsiW, y:0, w:tapeW, h:this.pfdH };
+            this.VSI = { x:this.pfdW-vsiW, y:0, w:vsiW, h:this.pfdH };
+            this.ATI = { x:tapeW, y:0, w:this.pfdW-tapeW*2-vsiW, h:this.pfdH };
+        },
+
+        renderPFD() {
+            const s = this.state;
+            const ctx = this.pfdCtx;
+            if (!ctx) { requestAnimationFrame(() => this.renderPFD()); return; }
+
+            ctx.clearRect(0, 0, this.pfdW, this.pfdH);
+            ctx.fillStyle = '#080a09'; ctx.fillRect(0, 0, this.pfdW, this.pfdH);
+
+            drawATI(ctx, this.ATI, s.pitch_angle || 0, s.bank_angle || 0);
+            drawIASTape(ctx, this.IAS, s.indicated_airspeed || 0);
+            drawAltTape(ctx, this.ALT, s.altitude || 0, s.autopilot?.selected_altitude || 0);
+            drawVSI(ctx, this.VSI, s.vertical_speed || 0);
+
+            this.hdgCtx.clearRect(0, 0, this.pfdW, 42);
+            drawHdgTape(this.hdgCtx, this.pfdW, 42, s.heading || 0, s.autopilot?.selected_heading || 0);
+
+            requestAnimationFrame(() => this.renderPFD());
+        },
+
+        handleSwipe(e) {
+            const dx = e.changedTouches[0].clientX - this.touchStartX;
+            if (Math.abs(dx) > 50) {
+                if (dx < 0 && this.activePanel < 2) this.activePanel++;
+                else if (dx > 0 && this.activePanel > 0) this.activePanel--;
+            }
+        },
+
+        flipComm() {
+            const nav = this.state.nav || {};
+            const tmp = nav.comm_active;
+            nav.comm_active = nav.comm_standby;
+            nav.comm_standby = tmp;
+        },
+
+        flipNav() {
+            const nav = this.state.nav || {};
+            const tmp = nav.active_frequency;
+            nav.active_frequency = nav.standby_frequency;
+            nav.standby_frequency = tmp;
         },
 
         startPolling() {
@@ -291,18 +963,9 @@ function flightSession() {
             try {
                 const resp = await fetch(`/session/${this.sessionId}/tick/`);
                 const data = await resp.json();
-
-                if (data.flight_state) {
-                    this.state = data.flight_state;
-                }
-                if (data.phase) {
-                    this.phase = data.phase;
-                }
-                if (data.tick) {
-                    this.tick = data.tick;
-                }
-
-                // Add new events
+                if (data.flight_state) this.state = data.flight_state;
+                if (data.phase) this.phase = data.phase;
+                if (data.tick) this.tick = data.tick;
                 if (data.events && data.events.length > 0) {
                     for (const evt of data.events) {
                         if (!this.events.find(e => e.id === evt.id)) {
@@ -311,8 +974,6 @@ function flightSession() {
                         }
                     }
                 }
-
-                // Show awaiting event if paused on one
                 if (data.awaiting_event) {
                     const ae = data.awaiting_event;
                     if (!this.events.find(e => e.id === ae.id)) {
@@ -320,9 +981,7 @@ function flightSession() {
                         this.drawerOpen = true;
                     }
                 }
-            } catch (err) {
-                console.error('Tick error:', err);
-            }
+            } catch (err) { console.error('Tick error:', err); }
         },
 
         async submitResponse(eventId, response) {
@@ -333,18 +992,12 @@ function flightSession() {
                     body: JSON.stringify({event_id: eventId, response: response})
                 });
                 const data = await resp.json();
-
-                // Update event in list
                 const evt = this.events.find(e => e.id === eventId);
                 if (evt) {
                     evt.status = 'resolved';
-                    if (data.coaching) {
-                        evt.coaching = data.coaching;
-                    }
+                    if (data.coaching) evt.coaching = data.coaching;
                 }
-            } catch (err) {
-                console.error('Action error:', err);
-            }
+            } catch (err) { console.error('Action error:', err); }
         },
 
         async setPhase(newPhase) {
@@ -357,9 +1010,7 @@ function flightSession() {
                 const data = await resp.json();
                 this.phase = data.phase;
                 this.state = data.flight_state;
-            } catch (err) {
-                console.error('Phase error:', err);
-            }
+            } catch (err) { console.error('Phase error:', err); }
         }
     };
 }
