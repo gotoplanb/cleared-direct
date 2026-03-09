@@ -1,0 +1,367 @@
+{% extends "base.html" %}
+{% block title %}{{ session.scenario_template.title }} — IFR Trainer{% endblock %}
+
+{% block extra_css %}
+.flight-hud {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+}
+.annunciator-bar {
+    background: #000;
+    padding: 0.4rem 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.75rem;
+}
+.ap-modes {
+    color: var(--accent-green);
+    letter-spacing: 0.15em;
+}
+.phase-badge {
+    color: var(--accent-amber);
+    text-transform: uppercase;
+}
+.panel-container {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+}
+.instrument-panel {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+}
+/* PFD placeholder */
+.pfd {
+    width: 100%;
+    max-width: 500px;
+    aspect-ratio: 1;
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+}
+.pfd-value {
+    font-size: 2.5rem;
+    color: var(--accent-cyan);
+    font-weight: bold;
+}
+.pfd-label {
+    font-size: 0.7rem;
+    color: var(--text-dim);
+    margin-top: 0.25rem;
+}
+.pfd-row {
+    display: flex;
+    gap: 3rem;
+    text-align: center;
+    margin: 1rem 0;
+}
+/* Comms drawer */
+.comms-drawer {
+    background: var(--bg-panel);
+    border-top: 1px solid var(--border);
+    max-height: 40vh;
+    overflow-y: auto;
+    padding: 1rem;
+    transition: max-height 0.3s;
+}
+.comms-drawer.collapsed {
+    max-height: 2.5rem;
+    overflow: hidden;
+}
+.drawer-toggle {
+    color: var(--text-dim);
+    font-size: 0.75rem;
+    cursor: pointer;
+    margin-bottom: 0.5rem;
+}
+.atc-message {
+    background: var(--bg-primary);
+    border-left: 3px solid var(--accent-amber);
+    padding: 0.75rem;
+    margin-bottom: 0.75rem;
+    font-size: 0.85rem;
+}
+.atc-label {
+    color: var(--accent-amber);
+    font-size: 0.7rem;
+    margin-bottom: 0.25rem;
+}
+.response-input {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+.response-input input {
+    flex: 1;
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    padding: 0.5rem;
+    font-family: inherit;
+    font-size: 0.85rem;
+}
+.response-input button {
+    background: var(--accent-green);
+    color: var(--bg-primary);
+    border: none;
+    padding: 0.5rem 1rem;
+    font-family: inherit;
+    cursor: pointer;
+}
+.option-btn {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    padding: 0.6rem;
+    font-family: inherit;
+    font-size: 0.85rem;
+    cursor: pointer;
+    margin-bottom: 0.4rem;
+    transition: border-color 0.2s;
+}
+.option-btn:hover {
+    border-color: var(--accent-cyan);
+}
+.coaching-box {
+    background: rgba(255, 170, 0, 0.1);
+    border-left: 3px solid var(--accent-amber);
+    padding: 0.75rem;
+    margin-top: 0.5rem;
+    font-size: 0.8rem;
+    color: var(--accent-amber);
+}
+.phase-controls {
+    display: flex;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: #000;
+    border-top: 1px solid var(--border);
+}
+.phase-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    padding: 0.3rem 0.6rem;
+    font-family: inherit;
+    font-size: 0.7rem;
+    cursor: pointer;
+}
+.phase-btn:hover {
+    border-color: var(--accent-cyan);
+    color: var(--accent-cyan);
+}
+{% endblock %}
+
+{% block content %}
+<div class="flight-hud" x-data="flightSession()" x-init="startPolling()">
+    <!-- Autopilot Annunciator Bar -->
+    <div class="annunciator-bar">
+        <span class="ap-modes" x-text="apModes"></span>
+        <span class="phase-badge" x-text="phase"></span>
+        <span style="color: var(--text-dim)" x-text="'T' + tick"></span>
+    </div>
+
+    <!-- Instrument Panel -->
+    <div class="panel-container">
+        <div class="instrument-panel">
+            <div class="pfd">
+                <div class="pfd-row">
+                    <div>
+                        <div class="pfd-value" x-text="state.indicated_airspeed + ''">0</div>
+                        <div class="pfd-label">KIAS</div>
+                    </div>
+                    <div>
+                        <div class="pfd-value" x-text="state.altitude + ''">0</div>
+                        <div class="pfd-label">ALT</div>
+                    </div>
+                </div>
+                <div class="pfd-row">
+                    <div>
+                        <div class="pfd-value" x-text="Math.round(state.heading) + '°'">0°</div>
+                        <div class="pfd-label">HDG</div>
+                    </div>
+                    <div>
+                        <div class="pfd-value" x-text="state.vertical_speed + ''">0</div>
+                        <div class="pfd-label">VS FPM</div>
+                    </div>
+                </div>
+                <div class="pfd-row">
+                    <div>
+                        <div class="pfd-value" style="font-size: 1.2rem; color: var(--text-dim)" x-text="state.nav?.next_waypoint || '—'">—</div>
+                        <div class="pfd-label">NEXT WPT</div>
+                    </div>
+                    <div>
+                        <div class="pfd-value" style="font-size: 1.2rem; color: var(--text-dim)" x-text="(state.nav?.distance_to_next || 0) + ' NM'">0 NM</div>
+                        <div class="pfd-label">DIST</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Phase Control Bar (dev/testing) -->
+    <div class="phase-controls">
+        <template x-for="p in ['preflight','taxi','departure','enroute','approach','landed']">
+            <button class="phase-btn" @click="setPhase(p)" x-text="p"></button>
+        </template>
+    </div>
+
+    <!-- Comms Drawer -->
+    <div class="comms-drawer" :class="{ collapsed: !drawerOpen }">
+        <div class="drawer-toggle" @click="drawerOpen = !drawerOpen" x-text="drawerOpen ? '▼ COMMS' : '▲ COMMS (' + events.length + ')'"></div>
+
+        <template x-for="evt in events" :key="evt.id">
+            <div>
+                <div class="atc-message">
+                    <div class="atc-label" x-text="evt.event_type.toUpperCase()"></div>
+                    <div x-text="evt.payload.atc_text || evt.payload.narration || evt.payload.title || 'Event'"></div>
+                </div>
+
+                <!-- Text input response -->
+                <template x-if="evt.status === 'awaiting_response' && evt.payload.required_response_type === 'text_input'">
+                    <div class="response-input">
+                        <input type="text" x-ref="'resp_' + evt.id" placeholder="Your readback..." @keydown.enter="submitResponse(evt.id, $event.target.value)">
+                        <button @click="submitResponse(evt.id, $refs['resp_' + evt.id]?.value || '')">XMIT</button>
+                    </div>
+                </template>
+
+                <!-- Multiple choice response -->
+                <template x-if="evt.status === 'awaiting_response' && evt.payload.decision_points">
+                    <div>
+                        <div style="color: var(--accent-cyan); margin: 0.5rem 0; font-size: 0.8rem" x-text="evt.payload.decision_points[0]?.prompt"></div>
+                        <template x-for="opt in evt.payload.decision_points[0]?.options || []">
+                            <button class="option-btn" @click="submitResponse(evt.id, opt.text)" x-text="opt.text"></button>
+                        </template>
+                    </div>
+                </template>
+
+                <!-- Coaching feedback -->
+                <template x-if="evt.coaching">
+                    <div class="coaching-box" x-text="evt.coaching"></div>
+                </template>
+            </div>
+        </template>
+
+        <template x-if="events.length === 0">
+            <div style="color: var(--text-dim); font-size: 0.8rem">No active comms</div>
+        </template>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function flightSession() {
+    return {
+        sessionId: {{ session.id }},
+        phase: '{{ session.phase }}',
+        tick: 0,
+        state: {{ session.flight_state|safe }},
+        events: [],
+        drawerOpen: false,
+        polling: null,
+
+        get apModes() {
+            const ap = this.state.autopilot || {};
+            if (!ap.engaged) return 'AP OFF';
+            return 'AP ' + (ap.modes || []).join(' ');
+        },
+
+        startPolling() {
+            this.polling = setInterval(() => this.doTick(), 3000);
+        },
+
+        async doTick() {
+            try {
+                const resp = await fetch(`/session/${this.sessionId}/tick/`);
+                const data = await resp.json();
+
+                if (data.flight_state) {
+                    this.state = data.flight_state;
+                }
+                if (data.phase) {
+                    this.phase = data.phase;
+                }
+                if (data.tick) {
+                    this.tick = data.tick;
+                }
+
+                // Add new events
+                if (data.events && data.events.length > 0) {
+                    for (const evt of data.events) {
+                        if (!this.events.find(e => e.id === evt.id)) {
+                            this.events.push(evt);
+                            this.drawerOpen = true;
+                        }
+                    }
+                }
+
+                // Show awaiting event if paused on one
+                if (data.awaiting_event) {
+                    const ae = data.awaiting_event;
+                    if (!this.events.find(e => e.id === ae.id)) {
+                        this.events.push(ae);
+                        this.drawerOpen = true;
+                    }
+                }
+            } catch (err) {
+                console.error('Tick error:', err);
+            }
+        },
+
+        async submitResponse(eventId, response) {
+            try {
+                const resp = await fetch(`/session/${this.sessionId}/action/`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({event_id: eventId, response: response})
+                });
+                const data = await resp.json();
+
+                // Update event in list
+                const evt = this.events.find(e => e.id === eventId);
+                if (evt) {
+                    evt.status = 'resolved';
+                    if (data.coaching) {
+                        evt.coaching = data.coaching;
+                    }
+                }
+            } catch (err) {
+                console.error('Action error:', err);
+            }
+        },
+
+        async setPhase(newPhase) {
+            try {
+                const resp = await fetch(`/session/${this.sessionId}/phase/`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({phase: newPhase})
+                });
+                const data = await resp.json();
+                this.phase = data.phase;
+                this.state = data.flight_state;
+            } catch (err) {
+                console.error('Phase error:', err);
+            }
+        }
+    };
+}
+</script>
+{% endblock %}
