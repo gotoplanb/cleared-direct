@@ -183,11 +183,7 @@ def _advance_state(session: FlightSession) -> None:
         return
 
     ap = state.get("autopilot", {})
-
-    if not ap.get("engaged"):
-        return  # manual flight - state holds steady (simplified)
-
-    modes = ap.get("modes", [])
+    modes = ap.get("modes", []) if ap.get("engaged") else []
     current_alt = state.get("altitude", 0)
     current_hdg = state.get("heading", 0)
     current_ias = state.get("indicated_airspeed", 0)
@@ -382,13 +378,29 @@ def transition_phase(session: FlightSession, new_phase: str) -> None:
         state["autopilot"]["engaged"] = False
 
     elif new_phase == FlightPhase.ENROUTE:
+        # Set cruise altitude from scenario briefing (default 6000)
+        cruise_alt = 6000
+        cruise_hdg = 280
+        route = session.scenario_template.route or []
         state["indicated_airspeed"] = aircraft.cruise_ktas
+        state["altitude"] = cruise_alt
+        state["vertical_speed"] = 0
+        state["heading"] = cruise_hdg
         state["autopilot"]["engaged"] = True
         state["autopilot"]["modes"] = ["HDG", "ALT"]
+        state["autopilot"]["selected_altitude"] = cruise_alt
+        state["autopilot"]["selected_heading"] = cruise_hdg
         state["engine"]["rpm"] = 2400
+        # Set up waypoint navigation
+        if route and len(route) > 1:
+            nav = state.get("nav", {})
+            nav["next_waypoint"] = route[1]
+            nav["distance_to_next"] = 30.0
+            state["nav"] = nav
 
     elif new_phase == FlightPhase.APPROACH:
         state["autopilot"]["modes"] = ["HDG", "ALT"]
+        state["autopilot"]["selected_altitude"] = 3000
 
     elif new_phase == FlightPhase.LANDED:
         state["indicated_airspeed"] = 0
