@@ -57,7 +57,10 @@ def session_detail(request, session_id):
         FlightSession.objects.select_related("scenario_template", "aircraft_type"),
         id=session_id,
     )
-    return render(request, "flights/session.html", {"session": session})
+    return render(request, "flights/session.html", {
+        "session": session,
+        "flight_state_json": json.dumps(session.flight_state),
+    })
 
 
 @require_GET

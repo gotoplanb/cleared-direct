@@ -1486,7 +1486,7 @@ function flightSession() {
         sessionId: {{ session.id }},
         phase: '{{ session.phase }}',
         tick: 0,
-        state: {{ session.flight_state|safe }},
+        state: {{ flight_state_json|safe }},
         events: [],
         drawerOpen: false,
         polling: null,
