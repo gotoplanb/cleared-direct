@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GFC 700 — Cleared Direct</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;600;700&display=swap');
+
+:root {
+--bg:        #0a0c0b;
+--panel:     #111413;
+--bezel:     #1c1f1e;
+--bezel2:    #252928;
+--green:     #00ff9d;
+--green-dim: #00ff9d44;
+--green-mid: #00ff9d99;
+--cyan:      #00d4ff;
+--cyan-dim:  #00d4ff55;
+--white:     #e8ede8;
+--amber:     #ffaa00;
+--amber-dim: #ffaa0044;
+--red:       #ff4444;
+--inactive:  #2a2e2d;
+--btn-face:  #1a1e1d;
+--btn-rim:   #2e3432;
+--engaged:   #003d25;
+--armed:     #002a38;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+background: var(--bg);
+min-height: 100vh;
+display: flex;
+flex-direction: column;
+align-items: center;
+justify-content: center;
+font-family: 'Share Tech Mono', monospace;
+padding: 24px 12px;
+gap: 20px;
+}
+
+/* ── ANNUNCIATOR BAR ── */
+.annunciator {
+width: min(520px, 100%);
+background: #080a09;
+border: 1px solid #1a1f1e;
+border-radius: 4px 4px 0 0;
+padding: 6px 12px;
+display: flex;
+align-items: center;
+justify-content: center;
+gap: 0;
+position: relative;
+overflow: hidden;
+}
+
+.annunciator::before {
+content: '';
+position: absolute;
+inset: 0;
+background: repeating-linear-gradient(
+90deg,
+transparent 0px, transparent 59px,
+#ffffff06 59px, #ffffff06 60px
+);
+pointer-events: none;
+}
+
+.ann-mode {
+flex: 1;
+text-align: center;
+padding: 4px 2px;
+font-family: 'Orbitron', sans-serif;
+font-size: 11px;
+font-weight: 600;
+letter-spacing: 0.08em;
+color: #333;
+transition: color 0.15s, text-shadow 0.15s;
+position: relative;
+}
+
+.ann-mode.engaged {
+color: var(--green);
+text-shadow: 0 0 8px var(--green), 0 0 20px rgba(0,255,157,0.4);
+}
+
+.ann-mode.armed {
+color: var(--cyan);
+text-shadow: 0 0 6px var(--cyan);
+}
+
+.ann-mode.active-ap {
+color: var(--amber);
+text-shadow: 0 0 8px var(--amber), 0 0 20px rgba(255,170,0,0.4);
+}
+
+.ann-sep {
+width: 1px;
+height: 18px;
+background: #1e2322;
+flex-shrink: 0;
+}
+
+/* ── READOUT STRIP ── */
+.readout-strip {
+width: min(520px, 100%);
+background: #090b0a;
+border-left: 1px solid #1a1f1e;
+border-right: 1px solid #1a1f1e;
+padding: 5px 16px;
+display: flex;
+justify-content: space-between;
+align-items: center;
+}
+
+.readout {
+display: flex;
+flex-direction: column;
+align-items: center;
+gap: 1px;
+}
+
+.readout-label {
+font-size: 8px;
+letter-spacing: 0.2em;
+color: #3a4040;
+text-transform: uppercase;
+}
+
+.readout-label.active { color: var(--green-mid); }
+.readout-label.armed-lbl { color: var(--cyan-dim); }
+
+.readout-val {
+font-family: 'Orbitron', sans-serif;
+font-size: 15px;
+font-weight: 600;
+color: #1e2422;
+letter-spacing: 0.05em;
+transition: color 0.2s, text-shadow 0.2s;
+}
+
+.readout-val.active {
+color: var(--green);
+text-shadow: 0 0 10px rgba(0,255,157,0.5);
+}
+
+.readout-val.armed-val {
+color: var(--cyan);
+text-shadow: 0 0 8px rgba(0,212,255,0.4);
+}
+
+.readout-unit {
+font-size: 7px;
+letter-spacing: 0.15em;
+color: #2a3030;
+}
+.readout-unit.active { color: var(--green-dim); }
+
+/* ── MAIN CONTROLLER BODY ── */
+.controller {
+width: min(520px, 100%);
+background: var(--bezel);
+border: 1px solid #2a2e2d;
+border-top: none;
+border-radius: 0 0 8px 8px;
+padding: 14px 12px 16px;
+display: flex;
+flex-direction: column;
+gap: 10px;
+box-shadow:
+0 8px 32px rgba(0,0,0,0.8),
+inset 0 1px 0 #2e3432,
+inset 0 -1px 0 #0a0c0b;
+}
+
+/* ── BUTTON ROW ── */
+.btn-row {
+display: flex;
+gap: 6px;
+align-items: center;
+justify-content: center;
+}
+
+.btn-group {
+display: flex;
+gap: 4px;
+}
+
+.btn-divider {
+width: 1px;
+height: 44px;
+background: linear-gradient(to bottom, transparent, #2e3432, transparent);
+margin: 0 4px;
+}
+
+/* Base button */
+.btn {
+position: relative;
+width: 52px;
+height: 44px;
+background: var(--btn-face);
+border: 1px solid var(--btn-rim);
+border-radius: 3px;
+cursor: pointer;
+display: flex;
+flex-direction: column;
+align-items: center;
+justify-content: center;
+gap: 2px;
+transition: all 0.1s ease;
+outline: none;
+-webkit-tap-highlight-color: transparent;
+box-shadow:
+0 2px 4px rgba(0,0,0,0.6),
+inset 0 1px 0 rgba(255,255,255,0.04),
+inset 0 -1px 0 rgba(0,0,0,0.4);
+}
+
+.btn::after {
+content: '';
+position: absolute;
+inset: 0;
+border-radius: 3px;
+background: transparent;
+transition: background 0.1s;
+}
+
+.btn:active {
+transform: translateY(1px);
+box-shadow: 0 1px 2px rgba(0,0,0,0.6), inset 0 1px 0 rgba(0,0,0,0.3);
+}
+
+.btn-label {
+font-family: 'Orbitron', sans-serif;
+font-size: 10px;
+font-weight: 600;
+letter-spacing: 0.05em;
+color: #4a5250;
+pointer-events: none;
+transition: color 0.15s, text-shadow 0.15s;
+line-height: 1;
+}
+
+.btn-sub {
+font-size: 6.5px;
+letter-spacing: 0.12em;
+color: #2e3432;
+pointer-events: none;
+text-transform: uppercase;
+transition: color 0.15s;
+}
+
+/* Engaged state */
+.btn.engaged {
+background: var(--engaged);
+border-color: var(--green-dim);
+box-shadow:
+0 0 8px rgba(0,255,157,0.2),
+0 2px 4px rgba(0,0,0,0.4),
+inset 0 1px 0 rgba(0,255,157,0.1);
+}
+
+.btn.engaged .btn-label {
+color: var(--green);
+text-shadow: 0 0 8px rgba(0,255,157,0.8);
+}
+
+.btn.engaged .btn-sub { color: var(--green-dim); }
+
+/* Armed state */
+.btn.armed {
+background: var(--armed);
+border-color: var(--cyan-dim);
+box-shadow:
+0 0 6px rgba(0,212,255,0.15),
+0 2px 4px rgba(0,0,0,0.4),
+inset 0 1px 0 rgba(0,212,255,0.08);
+}
+
+.btn.armed .btn-label {
+color: var(--cyan);
+text-shadow: 0 0 6px rgba(0,212,255,0.7);
+}
+
+.btn.armed .btn-sub { color: var(--cyan-dim); }
+
+/* AP master — wider */
+.btn-ap {
+width: 60px;
+background: #1a0808;
+border-color: #3a1a1a;
+}
+
+.btn-ap.engaged {
+background: #3a0808;
+border-color: var(--red);
+box-shadow: 0 0 10px rgba(255,68,68,0.3), 0 2px 4px rgba(0,0,0,0.4);
+}
+
+.btn-ap.engaged .btn-label {
+color: var(--red);
+text-shadow: 0 0 8px rgba(255,68,68,0.9);
+}
+
+/* FD button */
+.btn-fd.engaged .btn-label {
+color: var(--amber);
+text-shadow: 0 0 8px rgba(255,170,0,0.8);
+}
+.btn-fd.engaged {
+background: #1f1500;
+border-color: var(--amber-dim);
+box-shadow: 0 0 6px rgba(255,170,0,0.2), 0 2px 4px rgba(0,0,0,0.4);
+}
+
+/* ── KNOB ROW ── */
+.knob-row {
+display: flex;
+align-items: center;
+justify-content: space-between;
+padding: 0 4px;
+}
+
+.knob-group {
+display: flex;
+flex-direction: column;
+align-items: center;
+gap: 4px;
+}
+
+.knob-label {
+font-size: 7.5px;
+letter-spacing: 0.2em;
+color: #3a4040;
+text-transform: uppercase;
+}
+
+.knob {
+width: 44px;
+height: 44px;
+border-radius: 50%;
+background: radial-gradient(circle at 35% 30%, #3a3e3d, #0e1110);
+border: 2px solid #2a2e2d;
+box-shadow:
+0 3px 8px rgba(0,0,0,0.7),
+inset 0 1px 0 rgba(255,255,255,0.06),
+0 0 0 1px #0a0c0b;
+cursor: pointer;
+position: relative;
+display: flex;
+align-items: center;
+justify-content: center;
+transition: transform 0.1s;
+}
+
+.knob:active { transform: scale(0.96); }
+
+/* Knob grip lines */
+.knob::before {
+content: '';
+position: absolute;
+width: 2px;
+height: 40%;
+background: rgba(255,255,255,0.12);
+top: 5px;
+border-radius: 1px;
+}
+
+.knob-inner {
+width: 20px;
+height: 20px;
+border-radius: 50%;
+background: radial-gradient(circle at 40% 35%, #2a2e2d, #0a0c0b);
+border: 1px solid #1e2220;
+box-shadow: inset 0 1px 2px rgba(0,0,0,0.8);
+}
+
+/* ── LEVEL WING / TOGA ── */
+.btn-lvl {
+width: 68px;
+height: 44px;
+background: #0a1a10;
+border-color: #1a3a22;
+}
+
+.btn-lvl .btn-label {
+font-size: 9px;
+color: #2a5035;
+}
+
+.btn-lvl:hover .btn-label {
+color: var(--green);
+text-shadow: 0 0 8px rgba(0,255,157,0.6);
+}
+
+/* ── BOTTOM LABEL ── */
+.unit-label {
+text-align: center;
+font-size: 8px;
+letter-spacing: 0.25em;
+color: #1e2422;
+text-transform: uppercase;
+padding-top: 2px;
+}
+
+/* ── OUTER FRAME ── */
+.frame-label {
+font-size: 9px;
+letter-spacing: 0.3em;
+color: #1e2422;
+text-transform: uppercase;
+text-align: center;
+}
+
+/* ── STATUS LIGHT ── */
+.status-dot {
+width: 6px;
+height: 6px;
+border-radius: 50%;
+background: var(--green);
+box-shadow: 0 0 6px var(--green);
+animation: pulse 2s ease-in-out infinite;
+flex-shrink: 0;
+}
+
+@keyframes pulse {
+0%, 100% { opacity: 1; }
+50% { opacity: 0.4; }
+}
+
+/* Hover glow on inactive buttons */
+.btn:not(.engaged):not(.armed):not(.btn-ap):hover .btn-label {
+color: #8a9290;
+}
+
+/* Scanlines */
+.scanlines {
+position: fixed;
+inset: 0;
+background: repeating-linear-gradient(
+to bottom,
+transparent 0px, transparent 3px,
+rgba(0,0,0,0.12) 3px, rgba(0,0,0,0.12) 4px
+);
+pointer-events: none;
+z-index: 100;
+}
+
+/* Dev mode toggle hint */
+.hint {
+font-size: 8px;
+color: #1a1e1d;
+letter-spacing: 0.2em;
+text-align: center;
+}
+</style>
+</head>
+<body>
+<div class="scanlines"></div>
+
+<!-- Mode annunciator bar -->
+<div class="annunciator">
+  <div class="ann-mode active-ap" id="ann-ap">AP</div>
+  <div class="ann-sep"></div>
+  <div class="ann-mode engaged" id="ann-fd">FD</div>
+  <div class="ann-sep"></div>
+  <div class="ann-mode engaged" id="ann-hdg">HDG</div>
+  <div class="ann-sep"></div>
+  <div class="ann-mode" id="ann-nav">NAV</div>
+  <div class="ann-sep"></div>
+  <div class="ann-mode" id="ann-apr">APR</div>
+  <div class="ann-sep"></div>
+  <div class="ann-mode" id="ann-vs">VS</div>
+  <div class="ann-sep"></div>
+  <div class="ann-mode engaged" id="ann-alt">ALT</div>
+  <div class="ann-sep"></div>
+  <div class="ann-mode" id="ann-flc">FLC</div>
+  <div class="ann-sep"></div>
+  <div class="ann-mode" id="ann-vnv">VNV</div>
+  <div class="ann-sep"></div>
+  <div class="ann-mode" id="ann-lvl">LVL</div>
+  <div class="ann-sep"></div>
+  <div class="status-dot"></div>
+</div>
+
+<!-- Selected value readouts -->
+<div class="readout-strip">
+  <div class="readout">
+    <div class="readout-label active">SEL HDG</div>
+    <div class="readout-val active" id="sel-hdg">280°</div>
+  </div>
+  <div class="readout">
+    <div class="readout-label">SEL CRS</div>
+    <div class="readout-val" id="sel-crs">---°</div>
+  </div>
+  <div class="readout">
+    <div class="readout-label active">SEL ALT</div>
+    <div class="readout-val active" id="sel-alt">8000</div>
+    <div class="readout-unit active">FT</div>
+  </div>
+  <div class="readout">
+    <div class="readout-label">SEL VS</div>
+    <div class="readout-val" id="sel-vs">---</div>
+    <div class="readout-unit">FPM</div>
+  </div>
+  <div class="readout">
+    <div class="readout-label">SEL IAS</div>
+    <div class="readout-val" id="sel-ias">---</div>
+    <div class="readout-unit">KTS</div>
+  </div>
+</div>
+
+<!-- Controller body -->
+<div class="controller">
+
+  <!-- Main button row -->
+  <div class="btn-row">
+
+    <!-- AP + FD -->
+    <div class="btn-group">
+      <button class="btn btn-ap engaged" id="btn-ap" onclick="toggleAP()">
+        <span class="btn-label">AP</span>
+        <span class="btn-sub">master</span>
+      </button>
+      <button class="btn btn-fd engaged" id="btn-fd" onclick="toggleMode('fd')">
+        <span class="btn-label">FD</span>
+        <span class="btn-sub">flight dir</span>
+      </button>
+    </div>
+
+    <div class="btn-divider"></div>
+
+    <!-- Lateral modes -->
+    <div class="btn-group">
+      <button class="btn engaged" id="btn-hdg" onclick="toggleMode('hdg')">
+        <span class="btn-label">HDG</span>
+        <span class="btn-sub">heading</span>
+      </button>
+      <button class="btn" id="btn-nav" onclick="toggleMode('nav')">
+        <span class="btn-label">NAV</span>
+        <span class="btn-sub">nav track</span>
+      </button>
+      <button class="btn" id="btn-apr" onclick="toggleMode('apr')">
+        <span class="btn-label">APR</span>
+        <span class="btn-sub">approach</span>
+      </button>
+      <button class="btn" id="btn-bc" onclick="toggleMode('bc')">
+        <span class="btn-label">BC</span>
+        <span class="btn-sub">back crs</span>
+      </button>
+    </div>
+
+    <div class="btn-divider"></div>
+
+    <!-- Vertical modes -->
+    <div class="btn-group">
+      <button class="btn" id="btn-vs" onclick="toggleMode('vs')">
+        <span class="btn-label">VS</span>
+        <span class="btn-sub">vert spd</span>
+      </button>
+      <button class="btn engaged" id="btn-alt" onclick="toggleMode('alt')">
+        <span class="btn-label">ALT</span>
+        <span class="btn-sub">alt hold</span>
+      </button>
+      <button class="btn" id="btn-flc" onclick="toggleMode('flc')">
+        <span class="btn-label">FLC</span>
+        <span class="btn-sub">spd ref</span>
+      </button>
+      <button class="btn" id="btn-vnv" onclick="toggleMode('vnv')">
+        <span class="btn-label">VNV</span>
+        <span class="btn-sub">vert nav</span>
+      </button>
+    </div>
+
+    <div class="btn-divider"></div>
+
+    <!-- LVL -->
+    <button class="btn btn-lvl" id="btn-lvl" onclick="activateLVL()">
+      <span class="btn-label">LVL</span>
+      <span class="btn-sub">level wing</span>
+    </button>
+
+  </div>
+
+  <!-- Knob row -->
+  <div class="knob-row">
+    <div class="knob-group">
+      <div class="knob-label">HDG</div>
+      <div class="knob" id="knob-hdg" onclick="bumpHdg(1)">
+        <div class="knob-inner"></div>
+      </div>
+      <div class="unit-label" id="hdg-readout">280°</div>
+    </div>
+
+    <div class="knob-group">
+      <div class="knob-label">CRS</div>
+      <div class="knob" id="knob-crs" onclick="bumpCrs(1)">
+        <div class="knob-inner"></div>
+      </div>
+      <div class="unit-label" id="crs-readout">---°</div>
+    </div>
+
+    <div class="knob-group">
+      <div class="knob-label">ALT SEL</div>
+      <div class="knob" id="knob-alt" onclick="bumpAlt(100)">
+        <div class="knob-inner"></div>
+      </div>
+      <div class="unit-label" id="alt-readout">8000 FT</div>
+    </div>
+
+    <div class="knob-group">
+      <div class="knob-label">VS / IAS</div>
+      <div class="knob" id="knob-vs" onclick="bumpVS(100)">
+        <div class="knob-inner"></div>
+      </div>
+      <div class="unit-label" id="vs-readout">--- FPM</div>
+    </div>
+  </div>
+
+</div>
+
+<div class="frame-label">GARMIN GFC 700 AFCS</div>
+<div class="hint">tap buttons and knobs to interact</div>
+
+<script>
+  // ── State ──
+  const state = {
+    ap: true,
+    fd: true,
+    lateral: 'hdg',   // hdg | nav | apr | bc | null
+    vertical: 'alt',  // vs | alt | flc | vnv | null
+    lvl: false,
+    hdg: 280,
+    crs: null,
+    alt: 8000,
+    vs: null,
+    ias: null,
+  };
+
+  const lateralModes = ['hdg', 'nav', 'apr', 'bc'];
+  const verticalModes = ['vs', 'alt', 'flc', 'vnv'];
+
+  function toggleAP() {
+    state.ap = !state.ap;
+    if (!state.ap) {
+      // Disconnecting AP kills all modes
+      state.lateral = null;
+      state.vertical = null;
+      state.lvl = false;
+    } else {
+      state.fd = true;
+    }
+    render();
+    flashAnnunciator('ann-ap');
+  }
+
+  function toggleMode(mode) {
+    if (!state.ap && !['fd'].includes(mode)) return;
+
+    if (mode === 'fd') {
+      state.fd = !state.fd;
+      render(); return;
+    }
+
+    if (lateralModes.includes(mode)) {
+      state.lateral = state.lateral === mode ? null : mode;
+      state.lvl = false;
+    }
+
+    if (verticalModes.includes(mode)) {
+      if (mode === 'vs') {
+        if (state.vertical !== 'vs') {
+          state.vs = 500;
+          state.vertical = 'vs';
+        } else {
+          state.vertical = null;
+          state.vs = null;
+        }
+      } else if (mode === 'flc') {
+        if (state.vertical !== 'flc') {
+          state.ias = 150;
+          state.vertical = 'flc';
+        } else {
+          state.vertical = null;
+          state.ias = null;
+        }
+      } else {
+        state.vertical = state.vertical === mode ? null : mode;
+      }
+      state.lvl = false;
+    }
+
+    render();
+  }
+
+  function activateLVL() {
+    if (!state.ap) return;
+    state.lvl = !state.lvl;
+    if (state.lvl) {
+      state.lateral = null;
+      state.vertical = null;
+    }
+    render();
+    if (state.lvl) flashAnnunciator('ann-lvl');
+  }
+
+  function bumpHdg(dir) {
+    state.hdg = ((state.hdg + dir - 1 + 360) % 360) + 1;
+    render();
+    knobSpin('knob-hdg');
+  }
+
+  function bumpCrs(dir) {
+    if (state.crs === null) state.crs = 280;
+    state.crs = ((state.crs + dir - 1 + 360) % 360) + 1;
+    render();
+    knobSpin('knob-crs');
+  }
+
+  function bumpAlt(dir) {
+    state.alt = Math.max(500, Math.min(45000, state.alt + dir));
+    render();
+    knobSpin('knob-alt');
+  }
+
+  function bumpVS(dir) {
+    if (state.vertical === 'vs') {
+      state.vs = Math.max(-3000, Math.min(3000, (state.vs || 0) + dir));
+    } else if (state.vertical === 'flc') {
+      state.ias = Math.max(60, Math.min(250, (state.ias || 150) + (dir > 0 ? 1 : -1)));
+    }
+    render();
+    knobSpin('knob-vs');
+  }
+
+  function knobSpin(id) {
+    const k = document.getElementById(id);
+    k.style.transform = 'rotate(20deg) scale(0.95)';
+    setTimeout(() => k.style.transform = '', 120);
+  }
+
+  function flashAnnunciator(id) {
+    const el = document.getElementById(id);
+    let count = 0;
+    const iv = setInterval(() => {
+      el.style.opacity = el.style.opacity === '0' ? '1' : '0';
+      if (++count > 5) { clearInterval(iv); el.style.opacity = '1'; }
+    }, 120);
+  }
+
+  function fmtHdg(v) { return v !== null ? String(v).padStart(3,'0') + '°' : '---°'; }
+  function fmtAlt(v) { return v !== null ? v.toLocaleString() : '-----'; }
+  function fmtVS(v)  { return v !== null ? (v >= 0 ? '+' : '') + v : '---'; }
+  function fmtIAS(v) { return v !== null ? v : '---'; }
+
+  function render() {
+    // AP button
+    const apBtn = document.getElementById('btn-ap');
+    apBtn.className = 'btn btn-ap' + (state.ap ? ' engaged' : '');
+    document.getElementById('ann-ap').className = 'ann-mode' + (state.ap ? ' active-ap' : '');
+
+    // FD
+    const fdBtn = document.getElementById('btn-fd');
+    fdBtn.className = 'btn btn-fd' + (state.fd ? ' engaged' : '');
+    document.getElementById('ann-fd').className = 'ann-mode' + (state.fd ? ' engaged' : '');
+
+    // Lateral mode buttons
+    lateralModes.forEach(m => {
+      const btn = document.getElementById('btn-' + m);
+      const ann = document.getElementById('ann-' + m);
+      const active = state.lateral === m && !state.lvl;
+      btn.className = 'btn' + (active ? ' engaged' : '');
+      ann.className = 'ann-mode' + (active ? ' engaged' : '');
+    });
+
+    // Vertical mode buttons
+    verticalModes.forEach(m => {
+      const btn = document.getElementById('btn-' + m);
+      const ann = document.getElementById('ann-' + m);
+      const active = state.vertical === m && !state.lvl;
+      btn.className = 'btn' + (active ? ' engaged' : '');
+      ann.className = 'ann-mode' + (active ? ' engaged' : '');
+    });
+
+    // LVL
+    const lvlBtn = document.getElementById('btn-lvl');
+    lvlBtn.className = 'btn btn-lvl' + (state.lvl ? ' engaged' : '');
+    document.getElementById('ann-lvl').className = 'ann-mode' + (state.lvl ? ' engaged' : '');
+
+    // BC annunciator
+    document.getElementById('ann-apr').className =
+      'ann-mode' + (state.lateral === 'apr' ? ' engaged' : '');
+
+    // Readouts
+    document.getElementById('sel-hdg').textContent = fmtHdg(state.hdg);
+    document.getElementById('sel-hdg').className = 'readout-val' + (state.lateral === 'hdg' ? ' active' : '');
+    document.getElementById('hdg-readout').textContent = fmtHdg(state.hdg);
+
+    const crsActive = state.lateral === 'nav' || state.lateral === 'apr';
+    document.getElementById('sel-crs').textContent = fmtHdg(state.crs);
+    document.getElementById('sel-crs').className = 'readout-val' + (crsActive ? ' active' : '');
+    document.getElementById('crs-readout').textContent = fmtHdg(state.crs);
+
+    document.getElementById('sel-alt').textContent = fmtAlt(state.alt);
+    document.getElementById('sel-alt').className = 'readout-val' + (state.vertical === 'alt' ? ' active' : '');
+    document.getElementById('alt-readout').textContent = fmtAlt(state.alt) + ' FT';
+
+    const vsActive = state.vertical === 'vs';
+    document.getElementById('sel-vs').textContent = fmtVS(state.vs);
+    document.getElementById('sel-vs').className = 'readout-val' + (vsActive ? ' active' : '');
+    document.getElementById('vs-readout').textContent = vsActive ? fmtVS(state.vs) + ' FPM' : '--- FPM';
+
+    const flcActive = state.vertical === 'flc';
+    document.getElementById('sel-ias').textContent = fmtIAS(state.ias);
+    document.getElementById('sel-ias').className = 'readout-val' + (flcActive ? ' active' : '');
+  }
+
+  // Initial render
+  render();
+</script>
+</body>
+</html>
