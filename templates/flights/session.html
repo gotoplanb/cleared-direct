@@ -697,7 +697,7 @@
         <div class="drawer-toggle" @click="drawerOpen = !drawerOpen" x-text="drawerOpen ? '▼ COMMS' : '▲ COMMS (' + events.length + ')'"></div>
 
         <template x-for="evt in events" :key="evt.id">
-            <div>
+            <div x-init="tryPlayAudio(evt)">
                 <div class="atc-message">
                     <div class="atc-label" x-text="evt.event_type.toUpperCase()"></div>
                     <div x-text="evt.payload.atc_text || evt.payload.narration || evt.payload.title || 'Event'"></div>
@@ -1502,6 +1502,9 @@ function flightSession() {
         cutscenePlaying: false,
         cutsceneFading: false,
 
+        // Audio state
+        _playedAudioIds: new Set(),
+
         // PFD canvas state
         pfdCanvas: null, pfdCtx: null,
         hdgCanvas: null, hdgCtx: null,
@@ -1661,6 +1664,15 @@ function flightSession() {
                     if (data.coaching) evt.coaching = data.coaching;
                 }
             } catch (err) { console.error('Action error:', err); }
+        },
+
+        tryPlayAudio(evt) {
+            if (this._playedAudioIds.has(evt.id)) return;
+            this._playedAudioIds.add(evt.id);
+            const url = evt.payload.atc_audio_url || evt.payload.narration_audio_url;
+            if (!url) return;
+            const audio = new Audio(url);
+            audio.play().catch(() => {}); // silently fail if no file or autoplay blocked
         },
 
         async setPhase(newPhase) {

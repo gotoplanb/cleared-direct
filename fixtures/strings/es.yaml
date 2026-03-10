@@ -1,0 +1,252 @@
+# Cleared Direct — Tabla de Cadenas en Español
+#
+# Traducción al español de todas las cadenas del juego.
+# Las llamadas ATC usan fraseología estándar OACI en español.
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# TRANSMISIONES ATC
+# ═══════════════════════════════════════════════════════════════════════════════
+
+atc:
+  cleared_takeoff_simple:
+    text: "Noviembre 4 Uniforme Tango, pista {runway}, autorizado para despegue."
+    note: "Despegue VFR simple"
+
+  cleared_takeoff_hdg_alt:
+    text: "Noviembre 4 Uniforme Tango, pista {runway}, autorizado para despegue. Vire rumbo {heading}, ascienda y mantenga {altitude}."
+    note: "Autorización de despegue IFR estándar"
+
+  cleared_takeoff_hdg_alt_expect:
+    text: "Noviembre 4 Uniforme Tango, pista {runway}, autorizado para despegue. Vire rumbo {heading}, ascienda y mantenga {altitude}. Espere {expect_altitude} diez minutos después del despegue."
+    note: "Despegue IFR con altitud esperada"
+
+  climb_maintain:
+    text: "Noviembre 4 Uniforme Tango, ascienda y mantenga {altitude}."
+    note: "Asignación de altitud simple"
+
+  climb_maintain_contact:
+    text: "Noviembre 4 Uniforme Tango, ascienda y mantenga {altitude}. Contacte {facility} en {frequency}."
+    note: "Altitud con cambio de frecuencia"
+
+  descend_maintain:
+    text: "Noviembre 4 Uniforme Tango, descienda y mantenga {altitude}, espere aproximación {approach}."
+    note: "Autorización de descenso con aproximación esperada"
+
+  descend_maintain_approach:
+    text: "Noviembre 4 Uniforme Tango, descienda y mantenga {altitude}. Espere aproximación {approach} en {destination}."
+    note: "Descenso con aproximación y destino"
+
+  maintain_altitude_expect:
+    text: "Noviembre 4 Uniforme Tango, mantenga {altitude}. Espere aproximación {approach} en {destination}."
+    note: "Nivelación con expectativa de aproximación"
+
+  contact_departure:
+    text: "Noviembre 4 Uniforme Tango, contacte salida en {frequency}."
+    note: "Traspaso a control de salida"
+
+  contact_center:
+    text: "Noviembre 4 Uniforme Tango, contacte {facility} en {frequency}."
+    note: "Traspaso a centro o aproximación"
+
+  frequency_change_approved:
+    text: "Noviembre 4 Uniforme Tango, {traffic_info}. Cambio a frecuencia de asesoramiento aprobado. Buen día."
+    note: "Terminación de servicio VFR"
+
+  radar_contact:
+    text: "Noviembre 4 Uniforme Tango, contacto radar. Altímetro de {destination} {altimeter}."
+    note: "Contacto radar inicial"
+
+  say_altitude:
+    text: "Noviembre 4 Uniforme Tango, reporte altitud."
+    note: "Consulta ATC"
+
+  hold_as_published:
+    text: "Noviembre 4 Uniforme Tango, espere en circuito según publicado en {fix}. Espere autorización adicional a las {efc}. Mantenga {altitude}."
+    note: "Circuito de espera estándar publicado"
+
+  hold_nonstandard:
+    text: "Noviembre 4 Uniforme Tango, espere al {direction} de {fix} en el radial {radial}, virajes por la {turns}. Espere autorización adicional a las {efc}. Mantenga {altitude}."
+    note: "Circuito de espera no estándar"
+
+  cleared_approach:
+    text: "Noviembre 4 Uniforme Tango, autorizado aproximación {approach}. Descienda y mantenga {altitude}. Contacte {facility} en {frequency} en {fix}."
+    note: "Autorización de aproximación completa"
+
+  cleared_approach_report:
+    text: "Noviembre 4 Uniforme Tango, autorizado aproximación {approach}. Reporte establecido en el localizador."
+    note: "Autorización con requisito de reporte"
+
+  route_amendment:
+    text: "Noviembre 4 Uniforme Tango, enmienda a su ruta. Después de {fix}, proceda directo {destination_fix}. Resto de ruta sin cambios."
+    note: "Cambio de ruta en vuelo"
+
+  execute_missed:
+    text: "Noviembre 4 Uniforme Tango, ejecute aproximación frustrada. Ascienda rumbo {heading}, ascienda y mantenga {altitude}. Contacte aproximación en {frequency}."
+    note: "Instrucciones de aproximación frustrada"
+
+  go_around:
+    text: "Noviembre 4 Uniforme Tango, ¡motor y al aire! Tráfico en la pista. Ascienda rumbo {heading}, mantenga {altitude}. Contacte aproximación en {frequency}."
+    note: "Motor y al aire urgente"
+
+  weather_below_minimums:
+    text: "Noviembre 4 Uniforme Tango, meteorología de {destination} ahora por debajo de mínimos — {ceiling} cubierto, visibilidad {visibility} {conditions}. {alternate} VFR. Diga intenciones."
+    note: "Aviso meteorológico que requiere decisión"
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# NARRACIÓN — NARRADOR DE CABINA
+# ═══════════════════════════════════════════════════════════════════════════════
+
+narration:
+  ceiling_drop:
+    text: "Actualización ATIS — {destination} ahora reporta {ceiling}, visibilidad {visibility} en {conditions}. Los mínimos se han ajustado."
+    note: "Deterioro meteorológico"
+
+  visibility_drop:
+    text: "Actualización ATIS — {destination} ahora reporta {ceiling}, visibilidad {visibility} en {conditions}. Vientos {winds}."
+    note: "Deterioro de visibilidad"
+
+  turbulence:
+    text: "Turbulencia moderada encontrada. El vuelo se vuelve turbulento al cruzar un límite frontal."
+    note: "Sin variables"
+
+  icing_advisory:
+    text: "PIREP de un avión regional — formación de hielo moderada reportada entre {lower_altitude} y {upper_altitude} en su área."
+    note: "Reporte de hielo"
+
+  pitot_ice_fluctuation:
+    text: "Nota una ligera fluctuación en su indicador de velocidad. La temperatura está cerca del punto de congelación a esta altitud."
+    note: "Advertencia sutil de velocidad"
+
+  pitot_ice_erratic:
+    text: "Su indicador de velocidad cae a cero y luego salta erráticamente. La OAT muestra {temperature}. Está en humedad visible."
+    note: "Velocidad no confiable"
+
+  alternator_failure:
+    text: "El anunciador de bajo voltaje se ilumina. Nota que el amperímetro muestra una descarga."
+    note: "Sistema eléctrico anormal"
+
+  door_seal_failure:
+    text: "Un fuerte sonido de aire llena la cabina. El sello de la puerta ha fallado parcialmente. El ruido es extremo y siente una corriente de aire."
+    note: "Fallo de sello de puerta"
+
+  comm_failure:
+    text: "Solo escucha estática en la radio. Intenta transmitir pero no obtiene respuesta. Ha sido autorizado para la aproximación."
+    note: "Pérdida de comunicaciones"
+
+  vacuum_failure:
+    text: "Su indicador de actitud comienza a girar. El anunciador de vacío se ilumina. Está en IMC sólido."
+    note: "Fallo de vacío estándar"
+
+  vacuum_failure_night:
+    text: "Su indicador de actitud gira. El indicador de rumbo comienza a precesar rápidamente. El anunciador de vacío se ilumina. Está en IMC sólido de noche."
+    note: "Panel parcial nocturno"
+
+  low_fuel_warning:
+    text: "Después del motor y al aire, revisa el combustible. El tanque izquierdo muestra {left_gals} galones, el tanque derecho muestra {right_gals} galones. Al consumo actual, tiene aproximadamente {minutes_remaining} minutos de combustible restante."
+    note: "Emergencia de combustible"
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# COACHING — TEXTO DE ENSEÑANZA
+# ═══════════════════════════════════════════════════════════════════════════════
+
+coaching:
+  readback_runway_clearance:
+    text: "Repita la pista y la autorización. Incluso en un día VFR, el ATC necesita saber que los escuchó."
+
+  readback_runway_heading_altitude:
+    text: "Repita la pista, el rumbo y la altitud. Estos son los tres elementos críticos de una autorización de despegue."
+
+  readback_runway_heading_altitude_atc:
+    text: "Repita la pista, el rumbo y la altitud. El ATC necesita confirmar que escuchó la autorización correctamente."
+
+  readback_full_takeoff:
+    text: "Se requiere repetición completa: pista, rumbo, altitud inicial Y altitud esperada. La altitud esperada es su altitud para pérdida de comunicaciones — es importante."
+
+  readback_altitude:
+    text: "Repita las asignaciones de altitud. El ATC necesita escuchar que confirma la altitud a la que asciende."
+
+  readback_altitude_frequency:
+    text: "Repita la altitud y la frecuencia juntas cuando se dan juntas."
+
+  readback_climb_frequency:
+    text: "Cuando le dan una autorización de ascenso y cambio de frecuencia juntos, repita tanto la altitud como la nueva frecuencia."
+
+  readback_frequency:
+    text: "Cuando le dan un cambio de frecuencia, repita la nueva frecuencia para que el ATC sepa que la tiene."
+
+  readback_frequency_facility:
+    text: "Repita la nueva frecuencia y el nombre de la instalación. Esto confirma que sabe a quién llamar después."
+
+  readback_altimeter:
+    text: "Cuando el ATC le da un ajuste de altímetro, repítalo para que sepan que lo ha configurado correctamente."
+
+  readback_descent:
+    text: "Repita la autorización de descenso incluyendo la altitud y el tipo de aproximación y pista esperados."
+
+  readback_descent_confirm:
+    text: "Una repetición correcta incluye la instrucción y el valor. El ATC necesita escuchar que confirma la altitud a la que desciende y qué aproximación espera."
+
+  readback_altitude_approach:
+    text: "Repita la asignación de altitud y la aproximación esperada."
+
+  readback_approach:
+    text: "Repita las autorizaciones de aproximación completas — el nombre de la aproximación, la pista y cualquier instrucción de frecuencia o fijo."
+
+  readback_approach_critical:
+    text: "Una autorización de aproximación es una de las repeticiones más críticas en vuelo IFR. Incluya: autorizado, nombre de aproximación, altitud y frecuencia de torre."
+
+  readback_approach_lr:
+    text: "Repetición completa de autorización de aproximación: 'Autorizado aproximación ILS pista 7 izquierda, descienda y mantenga 3,000, contacte torre 118.3 en JOTLY.' Incluya el designador I/D."
+
+  readback_approach_report:
+    text: "Segundo intento de aproximación. Repita la autorización y el requisito de reporte. 'Reporte establecido' significa decirle a torre cuando está en el localizador."
+
+  readback_traffic:
+    text: "Acuse recibo de las llamadas de tráfico y cambios de frecuencia. 'Tráfico a la vista' o 'buscando tráfico' son ambos aceptables."
+
+  readback_route_amendment:
+    text: "Cuando el ATC enmienda su ruta, repita la enmienda. Diga qué cambió y confirme que el resto no tiene cambios."
+
+  readback_say_altitude:
+    text: "Cuando el ATC pregunta 'reporte altitud', responda con su altitud actual. Por ejemplo: 'Noviembre 4 Uniforme Tango, 3,500.'"
+
+  readback_hold:
+    text: "Las instrucciones de espera requieren una repetición completa: el fijo de espera, hora de autorización adicional esperada y altitud. La hora EFC es crítica — es su tiempo de planificación para pérdida de comunicaciones."
+
+  readback_hold_nonstandard:
+    text: "Un circuito de espera no estándar requiere repetición completa: fijo, dirección, radial, dirección de viraje, hora EFC y altitud. Los virajes por la derecha son no estándar — asegúrese de captarlo."
+
+  readback_missed:
+    text: "En una aproximación frustrada, repita las instrucciones: rumbo, altitud y frecuencia de contacto. Ejecute inmediatamente — ascienda primero, luego comunique."
+
+  readback_go_around:
+    text: "Una instrucción de motor y al aire es urgente. Ejecute primero — potencia máxima, cabeceo arriba, limpie la configuración. Luego repita: rumbo, altitud, frecuencia. La velocidad importa aquí."
+
+  pitot_heat:
+    text: "El hielo en el pitot puede causar velocidad no confiable. Encender la calefacción del pitot es la acción correcta inmediata. No es necesario declarar emergencia aún, pero el monitoreo es esencial."
+
+  unreliable_airspeed:
+    text: "Con velocidad no confiable: (1) calefacción pitot ENCENDIDA, (2) configure una potencia conocida para su aeronave, (3) verifique con la velocidad GPS si está disponible. No persiga el indicador — vuele actitud y potencia."
+
+  vacuum_failure:
+    text: "Con un fallo de vacío en IMC, su indicador de actitud e indicador de rumbo no son confiables. Transición inmediata a panel parcial — los instrumentos primarios son velocidad, coordinador de viraje y altímetro."
+
+  vacuum_failure_night:
+    text: "Fallo de vacío = sin indicador de actitud, sin indicador de rumbo. Su escaneo se convierte en: velocidad (cabeceo), coordinador de viraje (alabeo), altímetro (tendencia). La pista GPS reemplaza al indicador de rumbo."
+
+  alternator_failure:
+    text: "Con un fallo del alternador, reduzca la carga eléctrica no esencial primero, luego intente un reinicio. Si no se recupera, planee aterrizar en el aeropuerto adecuado más cercano."
+
+  door_seal:
+    text: "Una puerta de cabina abriéndose en vuelo es alarmante pero no es una emergencia en la mayoría de las aeronaves GA. Reduzca velocidad para disminuir las cargas de aire en la puerta, intente asegurarla."
+
+  divert_below_minimums:
+    text: "Nunca intente una aproximación cuando el campo reporta por debajo de mínimos — así es como ocurre el vuelo controlado contra el terreno. Desvíe a su alternativo o al campo más cercano con meteorología adecuada."
+
+  lost_comms:
+    text: "Procedimientos de pérdida de comunicaciones (91.185): transponder 7600 inmediatamente. Ya que fue autorizado para la aproximación, vuélela. La torre despejará el tráfico cuando vean 7600."
+
+  low_fuel:
+    text: "Con 30 minutos de combustible, declare COMBUSTIBLE MÍNIMO al ATC inmediatamente. Esto no es una declaración de emergencia, pero le dice al ATC que no puede aceptar demoras."

@@ -131,12 +131,14 @@ def tick(session: FlightSession) -> dict[str, Any]:
     if session.paused or session.phase in (FlightPhase.LANDED, FlightPhase.FAILED):
         return {"paused": True, "events": []}
 
+    lang = getattr(session, "language", "en") or "en"
+
     # Check if waiting for player response
     awaiting = session.event_queue.filter(status=EventStatus.AWAITING_RESPONSE).first()
     if awaiting:
         return {
             "paused": True,
-            "awaiting_event": _serialize_event(awaiting),
+            "awaiting_event": _serialize_event(awaiting, lang=lang),
             "events": [],
         }
 
@@ -168,7 +170,7 @@ def tick(session: FlightSession) -> dict[str, Any]:
         "tick": session.tick_count,
         "phase": session.phase,
         "flight_state": session.flight_state,
-        "events": [_serialize_event(e) for e in fired_events],
+        "events": [_serialize_event(e, lang=lang) for e in fired_events],
     }
 
 
@@ -439,13 +441,17 @@ def resolve_event(
     event.save()
 
 
-def _serialize_event(event: EventQueueItem) -> dict:
-    """Serialize an event for the frontend."""
+def _serialize_event(event: EventQueueItem, lang: str = "en") -> dict:
+    """Serialize an event for the frontend, resolving string keys."""
+    from .strings import resolve_payload
+
+    payload = resolve_payload(event.payload or {}, lang=lang)
+
     return {
         "id": event.id,
         "order": event.order,
         "event_type": event.event_type,
         "status": event.status,
-        "payload": event.payload,
+        "payload": payload,
         "fired_at": event.fired_at.isoformat() if event.fired_at else None,
     }

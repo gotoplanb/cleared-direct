@@ -1,0 +1,135 @@
+title: "IFR with Hold at Orlando"
+description: "IFR flight with holding pattern, missed approach, and diversion decision"
+aircraft: single-engine
+departure: KGNV
+destination: KORL
+route:
+  - KGNV
+  - OCALA
+  - DLAND
+  - KORL
+difficulty_baseline: 3
+briefing: >
+  Departing KGNV at 1800 local for KORL (Orlando Executive). Ceilings 2,500
+  broken at KGNV, 1,200 overcast at KORL. Visibility 3 in light rain at
+  destination. Filed 6,000 via OCALA direct DLAND direct KORL. Expect ILS
+  runway 7 approach. A line of weather is moving through central Florida.
+  Check fuel — you have 4 hours endurance.
+
+baseline_events:
+  - trigger: "phase_change:departure"
+    type: atc_instruction
+    payload:
+      atc_text_key: atc.cleared_takeoff_hdg_alt
+      variables:
+        runway: "28"
+        heading: "100"
+        altitude: "4,000"
+      required_response_type: text_input
+      correct_readback_keywords: ["cleared", "takeoff", "28", "heading", "100", "4000"]
+      coaching_key: coaching.readback_runway_heading_altitude
+
+  - trigger: "altitude_crossing:4000"
+    type: atc_instruction
+    payload:
+      atc_text_key: atc.climb_maintain_contact
+      variables:
+        altitude: "6,000"
+        facility: "Jacksonville Center"
+        frequency: "132.05"
+      required_response_type: text_input
+      correct_readback_keywords: ["climb", "maintain", "6000", "132.05"]
+      coaching_key: coaching.readback_climb_frequency
+
+  - trigger: "waypoint:DLAND"
+    type: atc_instruction
+    payload:
+      atc_text_key: atc.hold_as_published
+      variables:
+        fix: "DLAND"
+        efc: "1845"
+        altitude: "6,000"
+      required_response_type: text_input
+      correct_readback_keywords: ["hold", "DLAND", "1845", "6000"]
+      coaching_key: coaching.readback_hold
+
+  - trigger: "time:30"
+    type: atc_instruction
+    payload:
+      atc_text_key: atc.cleared_approach
+      variables:
+        approach: "ILS runway 7"
+        altitude: "2,000"
+        facility: "Orlando tower"
+        frequency: "118.7"
+        fix: "HARIS"
+      required_response_type: text_input
+      correct_readback_keywords: ["cleared", "ILS", "7", "2000", "118.7"]
+      coaching_key: coaching.readback_approach_critical
+
+  - trigger: "time:45"
+    type: atc_instruction
+    payload:
+      atc_text_key: atc.execute_missed
+      variables:
+        heading: "070"
+        altitude: "3,000"
+        frequency: "124.8"
+      required_response_type: text_input
+      correct_readback_keywords: ["missed", "approach", "heading", "070", "3000", "124.8"]
+      coaching_key: coaching.readback_missed
+
+difficulty_pools:
+  "2":
+    - weight: 0.6
+      trigger: "waypoint:OCALA"
+      type: environmental_change
+      payload:
+        narration_key: narration.turbulence
+        change: turbulence
+
+  "3":
+    - weight: 1.0
+      trigger: "time:50"
+      type: atc_instruction
+      payload:
+        title: "Diversion Decision"
+        atc_text_key: atc.weather_below_minimums
+        variables:
+          destination: "Orlando"
+          ceiling: "200"
+          visibility: "half mile"
+          conditions: "fog"
+          alternate: "Sanford"
+        decision_points:
+          - prompt: "Orlando is below minimums after your missed approach. What do you do?"
+            options:
+              - text: "Divert to Sanford, request vectors to KSFB"
+                quality: best
+              - text: "Request another ILS attempt at Orlando"
+                quality: poor
+              - text: "Declare minimum fuel and request priority to nearest VFR"
+                quality: acceptable
+              - text: "Continue to Orlando, the weather might improve"
+                quality: dangerous
+        coaching_key: coaching.divert_below_minimums
+
+  "4":
+    - weight: 0.9
+      trigger: "time:25"
+      type: emergency
+      payload:
+        title: "Door Seal Failure"
+        narration_key: narration.door_seal_failure
+        decision_points:
+          - prompt: "How do you handle this?"
+            options:
+              - text: "Slow down, secure the door, continue to destination"
+                quality: best
+              - text: "Declare emergency and request immediate return"
+                quality: acceptable
+              - text: "Ignore it, the door won't open in flight"
+                quality: poor
+              - text: "Open the door fully to equalize pressure"
+                quality: dangerous
+        coaching_key: coaching.door_seal

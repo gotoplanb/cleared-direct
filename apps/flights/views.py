@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 
 from django.http import JsonResponse
@@ -17,12 +19,16 @@ from .models import (
     ResponseQuality,
     ResponseType,
 )
+from .strings import resolve, resolve_payload, SUPPORTED_LANGUAGES
 
 
 def index(request):
     """Landing page — scenario selection."""
     scenarios = ScenarioTemplate.objects.select_related("aircraft_type").all()
-    return render(request, "flights/index.html", {"scenarios": scenarios})
+    return render(request, "flights/index.html", {
+        "scenarios": scenarios,
+        "languages": SUPPORTED_LANGUAGES,
+    })
 
 
 @csrf_exempt
@@ -32,6 +38,9 @@ def start_session(request):
     data = json.loads(request.body) if request.content_type == "application/json" else request.POST
     scenario_id = data.get("scenario_id")
     difficulty = int(data.get("difficulty", 2))
+    language = data.get("language", "en")
+    if language not in SUPPORTED_LANGUAGES:
+        language = "en"
 
     scenario = get_object_or_404(ScenarioTemplate, id=scenario_id)
 
@@ -39,6 +48,7 @@ def start_session(request):
         scenario_template=scenario,
         aircraft_type=scenario.aircraft_type,
         difficulty=difficulty,
+        language=language,
     )
     engine.initialize_session(session)
 
@@ -60,6 +70,7 @@ def session_detail(request, session_id):
     return render(request, "flights/session.html", {
         "session": session,
         "flight_state_json": json.dumps(session.flight_state),
+        "language": session.language,
     })
 
 
@@ -100,8 +111,10 @@ def session_action(request, session_id):
         status=EventStatus.AWAITING_RESPONSE,
     )
 
-    # Evaluate the response
-    quality, correct, coaching = _evaluate_response(event, response_text)
+    # Evaluate the response (resolve string keys for the session's language)
+    lang = session.language or "en"
+    resolved_payload = resolve_payload(event.payload or {}, lang=lang)
+    quality, correct, coaching = _evaluate_response(event, response_text, resolved_payload)
 
     # Record the player action
     action = PlayerAction.objects.create(
@@ -143,12 +156,15 @@ def session_phase(request, session_id):
     })
 
 
-def _evaluate_response(event: EventQueueItem, response: str) -> tuple[str, bool, str]:
+def _evaluate_response(
+    event: EventQueueItem, response: str, resolved_payload: dict | None = None
+) -> tuple[str, bool, str]:
     """Evaluate a player's response against the event payload.
 
     Returns (quality, correct, coaching_text).
+    resolved_payload has string keys already resolved to text.
     """
-    payload = event.payload or {}
+    payload = resolved_payload or event.payload or {}
 
     # ATC readback evaluation
     if payload.get("correct_readback_keywords"):

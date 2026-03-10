@@ -1,0 +1,125 @@
+title: "IFR Cross-Country to St. Augustine"
+description: "Standard IFR cross-country with a frequency change and approach clearance"
+aircraft: single-engine
+departure: KGNV
+destination: KSGJ
+route:
+  - KGNV
+  - OCALA
+  - PALAT
+  - KSGJ
+difficulty_baseline: 2
+briefing: >
+  You're departing KGNV at 1400 local for KSGJ (St. Augustine). Ceiling is
+  3,000 broken, visibility 5 in haze. Filed for 5,000 via OCALA direct PALAT
+  direct KSGJ. Expect RNAV runway 31 approach. Winds 180 at 12.
+
+baseline_events:
+  - trigger: "phase_change:departure"
+    type: atc_instruction
+    payload:
+      atc_text_key: atc.cleared_takeoff_hdg_alt
+      variables:
+        runway: "28"
+        heading: "090"
+        altitude: "3,000"
+      required_response_type: text_input
+      correct_readback_keywords: ["cleared", "takeoff", "28", "heading", "090", "3000"]
+      coaching_key: coaching.readback_runway_heading_altitude
+
+  - trigger: "altitude_crossing:3000"
+    type: atc_instruction
+    payload:
+      atc_text_key: atc.climb_maintain
+      variables:
+        altitude: "5,000"
+      required_response_type: text_input
+      correct_readback_keywords: ["climb", "maintain", "5000"]
+      coaching_key: coaching.readback_altitude
+
+  - trigger: "altitude_crossing:5000"
+    type: atc_instruction
+    payload:
+      atc_text_key: atc.contact_center
+      variables:
+        facility: "Jacksonville Center"
+        frequency: "134.75"
+      required_response_type: text_input
+      correct_readback_keywords: ["134.75", "Jacksonville", "Center"]
+      coaching_key: coaching.readback_frequency_facility
+
+  - trigger: "waypoint:PALAT"
+    type: atc_instruction
+    payload:
+      atc_text_key: atc.descend_maintain_approach
+      variables:
+        altitude: "2,000"
+        approach: "RNAV runway 31"
+        destination: "St. Augustine"
+      required_response_type: text_input
+      correct_readback_keywords: ["descend", "maintain", "2000", "RNAV", "31"]
+      coaching_key: coaching.readback_descent
+
+  - trigger: "waypoint:KSGJ"
+    type: atc_instruction
+    payload:
+      atc_text_key: atc.cleared_approach
+      variables:
+        approach: "RNAV runway 31"
+        altitude: "2,000"
+        facility: "tower"
+        frequency: "118.35"
+        fix: "CLUSH"
+      required_response_type: text_input
+      correct_readback_keywords: ["cleared", "RNAV", "31", "118.35"]
+      coaching_key: coaching.readback_approach
+
+difficulty_pools:
+  "2":
+    - weight: 0.5
+      trigger: "waypoint:OCALA"
+      type: atc_instruction
+      payload:
+        title: "Amended Clearance"
+        atc_text_key: atc.route_amendment
+        variables:
+          fix: "OCALA"
+          destination_fix: "PALAT"
+        required_response_type: text_input
+        correct_readback_keywords: ["direct", "PALAT", "route", "unchanged"]
+        coaching_key: coaching.readback_route_amendment
+
+  "3":
+    - weight: 0.7
+      trigger: "waypoint:PALAT"
+      type: environmental_change
+      payload:
+        narration_key: narration.visibility_drop
+        variables:
+          destination: "KSGJ"
+          ceiling: "1,500 broken"
+          visibility: "2"
+          conditions: "rain"
+          winds: "200 at 18 gusting 25"
+        change: visibility_drop
+        new_visibility: 2
+
+  "4":
+    - weight: 0.9
+      trigger: "time:40"
+      type: abnormal
+      payload:
+        title: "Alternator Failure"
+        narration_key: narration.alternator_failure
+        decision_points:
+          - prompt: "What's your immediate action?"
+            options:
+              - text: "Shed electrical load, attempt alternator reset, plan to land soon"
+                quality: best
+              - text: "Continue the flight, the battery should last"
+                quality: poor
+              - text: "Declare emergency and request immediate vectors"
+                quality: acceptable
+              - text: "Turn off the master switch to save battery"
+                quality: dangerous
+        coaching_key: coaching.alternator_failure

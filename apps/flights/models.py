@@ -129,6 +129,7 @@ class FlightSession(models.Model):
     )
     tick_count = models.PositiveIntegerField(default=0)
     paused = models.BooleanField(default=False)
+    language = models.CharField(max_length=5, default="en")
 
     class Meta:
         db_table = "ifr_flight_session"

@@ -1,0 +1,301 @@
+# Cleared Direct — English String Table
+#
+# This is the single source of truth for all displayable/recordable text.
+# Scenarios reference strings by key (e.g. atc.cleared_takeoff).
+#
+# Variable slots use {curly_braces}. The engine substitutes values from the
+# scenario's `variables` map at runtime.
+#
+# String categories:
+#   atc.*       — ATC voice transmissions (need MP3 recordings)
+#   narration.* — Cockpit narrator / situational awareness (need MP3 recordings)
+#   coaching.*  — Coaching text shown after poor responses (text only)
+#
+# Recording notes:
+#   - ATC strings: Record in a firm, professional ATC cadence. Emphasize numbers.
+#   - Narration strings: Record in a calm narrator voice, like a flight instructor.
+#   - Each string maps to one MP3 file: audio/en/{key_with_dots_as_slashes}.mp3
+#     e.g. atc.cleared_takeoff → audio/en/atc/cleared_takeoff.mp3
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ATC VOICE TRANSMISSIONS
+# Record each as an MP3. Substitute {variables} when recording specific versions.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+atc:
+  # ── Takeoff & Departure ──────────────────────────────────
+
+  cleared_takeoff_simple:
+    text: "November 4 Uniform Tango, runway {runway}, cleared for takeoff."
+    note: "VFR takeoff clearance — no heading or altitude assignment"
+
+  cleared_takeoff_hdg_alt:
+    text: "November 4 Uniform Tango, runway {runway}, cleared for takeoff. Fly heading {heading}, climb and maintain {altitude}."
+    note: "Standard IFR takeoff clearance"
+
+  cleared_takeoff_hdg_alt_expect:
+    text: "November 4 Uniform Tango, runway {runway}, cleared for takeoff. Fly heading {heading}, climb and maintain {altitude}. Expect {expect_altitude} ten minutes after departure."
+    note: "IFR takeoff with expected altitude — critical for lost-comm procedures"
+
+  # ── Climb & Descent ─────────────────────────────────────
+
+  climb_maintain:
+    text: "November 4 Uniform Tango, climb and maintain {altitude}."
+    note: "Simple altitude assignment"
+
+  climb_maintain_contact:
+    text: "November 4 Uniform Tango, climb and maintain {altitude}. Contact {facility} on {frequency}."
+    note: "Altitude assignment with frequency change"
+
+  descend_maintain:
+    text: "November 4 Uniform Tango, descend and maintain {altitude}, expect {approach} approach."
+    note: "Descent clearance with expected approach"
+
+  descend_maintain_approach:
+    text: "November 4 Uniform Tango, descend and maintain {altitude}. Expect {approach} approach at {destination}."
+    note: "Descent with approach and destination named"
+
+  maintain_altitude_expect:
+    text: "November 4 Uniform Tango, maintain {altitude}. Expect {approach} approach at {destination}."
+    note: "Level-off with approach expectation"
+
+  # ── Frequency Changes ───────────────────────────────────
+
+  contact_departure:
+    text: "November 4 Uniform Tango, contact departure on {frequency}."
+    note: "Handoff to departure control"
+
+  contact_center:
+    text: "November 4 Uniform Tango, contact {facility} on {frequency}."
+    note: "Handoff to center or approach — use facility name"
+
+  frequency_change_approved:
+    text: "November 4 Uniform Tango, {traffic_info}. Change to advisory frequency approved. Good day."
+    note: "VFR advisory termination with traffic call"
+
+  # ── Radar & Position ────────────────────────────────────
+
+  radar_contact:
+    text: "November 4 Uniform Tango, radar contact. {destination} altimeter {altimeter}."
+    note: "Initial radar contact with altimeter setting"
+
+  say_altitude:
+    text: "November 4 Uniform Tango, say altitude."
+    note: "ATC query — expects pilot altitude report"
+
+  # ── Holding ─────────────────────────────────────────────
+
+  hold_as_published:
+    text: "November 4 Uniform Tango, hold as published at {fix}. Expect further clearance at {efc}. Maintain {altitude}."
+    note: "Standard published hold — left turns implied"
+
+  hold_nonstandard:
+    text: "November 4 Uniform Tango, hold {direction} of {fix} on the {radial} radial, {turns} turns. Expect further clearance at {efc}. Maintain {altitude}."
+    note: "Non-standard hold — all elements must be read back"
+
+  # ── Approach ────────────────────────────────────────────
+
+  cleared_approach:
+    text: "November 4 Uniform Tango, cleared {approach} approach. Descend and maintain {altitude}. Contact {facility} on {frequency} at {fix}."
+    note: "Full approach clearance with handoff"
+
+  cleared_approach_report:
+    text: "November 4 Uniform Tango, cleared {approach} approach. Report established on the localizer."
+    note: "Approach clearance with reporting requirement"
+
+  # ── Route Amendments ────────────────────────────────────
+
+  route_amendment:
+    text: "November 4 Uniform Tango, amendment to your route. After {fix}, proceed direct {destination_fix}. Rest of route unchanged."
+    note: "In-flight route change"
+
+  # ── Missed Approach & Go-Around ─────────────────────────
+
+  execute_missed:
+    text: "November 4 Uniform Tango, execute missed approach. Climb heading {heading}, climb and maintain {altitude}. Contact approach on {frequency}."
+    note: "Missed approach instructions from tower or approach"
+
+  go_around:
+    text: "November 4 Uniform Tango, go around! Traffic on the runway. Climb heading {heading}, maintain {altitude}. Contact approach on {frequency}."
+    note: "Urgent go-around — record with emphasis on 'go around!'"
+
+  # ── Weather & Diversion ─────────────────────────────────
+
+  weather_below_minimums:
+    text: "November 4 Uniform Tango, {destination} weather now below minimums — {ceiling} overcast, visibility {visibility} {conditions}. {alternate} VFR. Say intentions."
+    note: "Weather advisory requiring pilot decision"
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# NARRATION — COCKPIT NARRATOR / SITUATIONAL AWARENESS
+# Calm instructor voice. Record each as an MP3.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+narration:
+  # ── Environmental ───────────────────────────────────────
+
+  ceiling_drop:
+    text: "ATIS update — {destination} now reporting {ceiling} overcast, visibility {visibility} in {conditions}. Minimums just got tighter."
+    note: "Weather deterioration notification"
+
+  visibility_drop:
+    text: "ATIS update — {destination} now reporting {ceiling} broken, visibility {visibility} in {conditions}. Winds {winds}."
+    note: "Visibility/wind deterioration"
+
+  turbulence:
+    text: "Moderate turbulence encountered. The ride gets bumpy as you cross a frontal boundary."
+    note: "No variables — use as-is"
+
+  icing_advisory:
+    text: "PIREP from a regional jet — moderate rime icing reported between {lower_altitude} and {upper_altitude} in your area."
+    note: "Icing PIREP relay"
+
+  # ── Abnormal Situations ─────────────────────────────────
+
+  pitot_ice_fluctuation:
+    text: "You notice a slight fluctuation in your airspeed indicator. Temperature is near freezing at this altitude."
+    note: "Subtle airspeed indication — early warning"
+
+  pitot_ice_erratic:
+    text: "Your airspeed indicator drops to zero, then jumps erratically. OAT shows {temperature}. You're in visible moisture."
+    note: "Full unreliable airspeed — more urgent"
+
+  alternator_failure:
+    text: "The low-voltage annunciator illuminates. You notice the ammeter showing a discharge."
+    note: "Electrical system abnormal"
+
+  door_seal_failure:
+    text: "A loud rushing sound fills the cockpit. The cabin door seal has partially failed. Noise is extreme and you feel a draft."
+    note: "Startling but manageable — record with urgency in background noise description"
+
+  comm_failure:
+    text: "You hear only static on the radio. You try transmitting but get no response. You've been cleared for the approach."
+    note: "Lost comms situation"
+
+  # ── Emergency ───────────────────────────────────────────
+
+  vacuum_failure:
+    text: "Your attitude indicator starts to tumble. The vacuum annunciator illuminates. You're in solid IMC."
+    note: "Standard vacuum failure narration"
+
+  vacuum_failure_night:
+    text: "Your attitude indicator tumbles. The heading indicator starts precessing rapidly. Vacuum annunciator illuminates. You're in solid IMC at night."
+    note: "Night partial panel — higher stress version"
+
+  low_fuel_warning:
+    text: "After the go-around, you check fuel. Left tank shows {left_gals} gallons, right tank shows {right_gals} gallons. At current consumption, you have approximately {minutes_remaining} minutes of fuel remaining."
+    note: "Fuel emergency — deliver calmly but with gravity"
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# COACHING — TEXT SHOWN AFTER POOR/INCORRECT RESPONSES
+# Text only (no audio recording needed). Can be long-form instructional.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+coaching:
+  # ── Readback coaching ───────────────────────────────────
+
+  readback_runway_clearance:
+    text: "Read back the runway and clearance. Even on a VFR day, ATC needs to know you heard them."
+
+  readback_runway_heading_altitude:
+    text: "Read back the runway, heading, and altitude. These are the three critical elements of a takeoff clearance."
+
+  readback_runway_heading_altitude_atc:
+    text: "Read back the runway, heading, and altitude. ATC needs to confirm you heard the clearance correctly."
+
+  readback_full_takeoff:
+    text: "Full readback required: runway, heading, initial altitude, AND expected altitude. The expected altitude is your lost-comm altitude — it matters."
+
+  readback_altitude:
+    text: "Read back altitude assignments. ATC needs to hear you confirm the altitude you're climbing to."
+
+  readback_altitude_frequency:
+    text: "Read back altitude and frequency together when they're given together."
+
+  readback_climb_frequency:
+    text: "When given a climb clearance and frequency change together, read back both the altitude and the new frequency."
+
+  readback_frequency:
+    text: "When given a frequency change, read back the new frequency so ATC knows you have it."
+
+  readback_frequency_facility:
+    text: "Read back the new frequency and facility name. This confirms you know who to call next."
+
+  readback_altimeter:
+    text: "When ATC gives you an altimeter setting, read it back so they know you've set it correctly."
+
+  readback_descent:
+    text: "Read back the descent clearance including the altitude and the expected approach type and runway."
+
+  readback_descent_confirm:
+    text: "A correct readback includes the instruction and the value. ATC needs to hear you confirm the altitude you're descending to and which approach you're expecting."
+
+  readback_altitude_approach:
+    text: "Read back the altitude assignment and the expected approach."
+
+  readback_approach:
+    text: "Read back approach clearances in full — the approach name, runway, and any frequency or fix instructions."
+
+  readback_approach_critical:
+    text: "An approach clearance is one of the most critical readbacks in IFR flying. Include: cleared, approach name, altitude, and tower frequency."
+
+  readback_approach_lr:
+    text: "Full approach clearance readback: 'Cleared ILS runway 7 left approach, descend and maintain 3,000, contact tower 118.3 at JOTLY.' Include the L/R designator."
+
+  readback_approach_report:
+    text: "Second approach attempt. Read back the clearance and the reporting requirement. 'Report established' means tell tower when you're on the localizer."
+
+  readback_traffic:
+    text: "Acknowledge traffic calls and frequency changes. 'Traffic in sight' or 'looking for traffic' are both acceptable."
+
+  readback_route_amendment:
+    text: "When ATC amends your route, read back the amendment. Say what changed and confirm the rest is unchanged."
+
+  readback_say_altitude:
+    text: "When ATC asks 'say altitude,' respond with your current altitude. For example: 'November 4 Uniform Tango, 3,500.'"
+
+  # ── Holding coaching ────────────────────────────────────
+
+  readback_hold:
+    text: "Holding instructions require a full readback: the hold fix, expect further clearance time, and altitude. The EFC time is critical — it's your lost-comm planning time."
+
+  readback_hold_nonstandard:
+    text: "Non-standard holding requires a full readback: fix, direction, radial, turn direction, EFC time, and altitude. Right turns are non-standard — make sure you catch that."
+
+  # ── Missed approach coaching ────────────────────────────
+
+  readback_missed:
+    text: "On a missed approach, read back the instructions: heading, altitude, and contact frequency. Execute immediately — climb first, then communicate."
+
+  readback_go_around:
+    text: "A go-around instruction is urgent. Execute first — full power, pitch up, clean up. Then read back: heading, altitude, frequency. Speed matters here."
+
+  # ── Decision point coaching ─────────────────────────────
+
+  pitot_heat:
+    text: "Pitot icing can cause unreliable airspeed. Turning on pitot heat is the immediate correct action. No need to declare an emergency yet, but monitoring is essential."
+
+  unreliable_airspeed:
+    text: "With unreliable airspeed: (1) pitot heat ON, (2) set a known power setting for your aircraft, (3) cross-check GPS groundspeed if available. Don't chase the ASI — fly attitude and power. Consider requesting a different altitude to exit icing conditions."
+
+  vacuum_failure:
+    text: "With a vacuum failure in IMC, your attitude indicator and heading indicator are unreliable. Transition immediately to partial panel — primary instruments become airspeed, turn coordinator, and altimeter. The autopilot may still work if it's electrically driven."
+
+  vacuum_failure_night:
+    text: "Vacuum failure = no attitude indicator, no heading indicator. Your scan becomes: airspeed (pitch), turn coordinator (bank), altimeter (trend). GPS track replaces the heading indicator. Declare the emergency and request help, but FLY THE AIRPLANE first. The autopilot may work if it's electrically driven, but don't count on it."
+
+  alternator_failure:
+    text: "With an alternator failure, shed non-essential electrical load first, then attempt a reset (alternator breaker). If it doesn't recover, plan to land at the nearest suitable airport — your battery has limited life. Don't turn off the master — you need it for radios and instruments."
+
+  door_seal:
+    text: "A cabin door opening in flight is startling but not an emergency in most GA aircraft. Slow down to reduce air loads on the door, attempt to secure it. The aircraft flies fine with the door open — aviate first, then deal with it."
+
+  divert_below_minimums:
+    text: "Never attempt an approach when the field is reported below minimums — that's how controlled flight into terrain happens. Divert to your alternate or the nearest field with suitable weather. Sanford is VFR and close by."
+
+  lost_comms:
+    text: "Lost comms procedures (91.185): squawk 7600 immediately. Since you've been cleared for the approach, fly it. The tower will clear traffic for you when they see 7600. Land normally. You were cleared — use that clearance."
+
+  low_fuel:
+    text: "With 30 minutes of fuel, declare MINIMUM FUEL to ATC immediately. This isn't an emergency declaration, but it tells ATC you cannot accept any delays. If fuel drops below what you need for the approach plus a missed approach, upgrade to a fuel emergency (MAYDAY). Don't be shy — ATC needs to know."

@@ -1,0 +1,192 @@
+title: "Checkride Hell into Jacksonville"
+description: "Everything goes wrong — partial panel, weather, holds, and diversions"
+aircraft: single-engine
+departure: KGNV
+destination: KJAX
+route:
+  - KGNV
+  - HERMY
+  - WLKRT
+  - ADERR
+  - KJAX
+difficulty_baseline: 4
+briefing: >
+  Departing KGNV at 2200 local for KJAX (Jacksonville International). Night
+  IMC — 800 overcast, visibility 2 in mist at departure. KJAX reporting 400
+  overcast, visibility 1 in fog. Winds 040 at 15 gusting 22. Filed 8,000 via
+  HERMY WLKRT ADERR KJAX. Expect ILS runway 7L approach. NOTAM: runway 25
+  closed. This one tests everything you know.
+
+baseline_events:
+  - trigger: "phase_change:departure"
+    type: atc_instruction
+    payload:
+      atc_text_key: atc.cleared_takeoff_hdg_alt_expect
+      variables:
+        runway: "28"
+        heading: "050"
+        altitude: "4,000"
+        expect_altitude: "8,000"
+      required_response_type: text_input
+      correct_readback_keywords: ["cleared", "takeoff", "28", "heading", "050", "4000", "8000"]
+      coaching_key: coaching.readback_full_takeoff
+
+  - trigger: "altitude_crossing:4000"
+    type: atc_instruction
+    payload:
+      atc_text_key: atc.climb_maintain_contact
+      variables:
+        altitude: "8,000"
+        facility: "Jacksonville Center"
+        frequency: "128.35"
+      required_response_type: text_input
+      correct_readback_keywords: ["climb", "maintain", "8000", "128.35"]
+      coaching_key: coaching.readback_altitude_frequency
+
+  - trigger: "waypoint:WLKRT"
+    type: atc_instruction
+    payload:
+      atc_text_key: atc.hold_nonstandard
+      variables:
+        direction: "southwest"
+        fix: "WLKRT"
+        radial: "225"
+        turns: "right"
+        efc: "2245"
+        altitude: "8,000"
+      required_response_type: text_input
+      correct_readback_keywords: ["hold", "southwest", "WLKRT", "225", "right", "2245", "8000"]
+      coaching_key: coaching.readback_hold_nonstandard
+
+  - trigger: "time:35"
+    type: atc_instruction
+    payload:
+      atc_text_key: atc.cleared_approach
+      variables:
+        approach: "ILS runway 7 left"
+        altitude: "3,000"
+        facility: "Jacksonville tower"
+        frequency: "118.3"
+        fix: "JOTLY"
+      required_response_type: text_input
+      correct_readback_keywords: ["cleared", "ILS", "7", "left", "3000", "118.3"]
+      coaching_key: coaching.readback_approach_lr
+
+  - trigger: "time:50"
+    type: atc_instruction
+    payload:
+      atc_text_key: atc.go_around
+      variables:
+        heading: "070"
+        altitude: "2,000"
+        frequency: "124.0"
+      required_response_type: text_input
+      correct_readback_keywords: ["going around", "heading", "070", "2000", "124.0"]
+      coaching_key: coaching.readback_go_around
+
+  - trigger: "time:60"
+    type: atc_instruction
+    payload:
+      atc_text_key: atc.cleared_approach_report
+      variables:
+        approach: "ILS runway 7 left"
+      required_response_type: text_input
+      correct_readback_keywords: ["cleared", "ILS", "7", "left", "report", "established", "localizer"]
+      coaching_key: coaching.readback_approach_report
+
+difficulty_pools:
+  "2":
+    - weight: 0.7
+      trigger: "waypoint:HERMY"
+      type: environmental_change
+      payload:
+        narration_key: narration.icing_advisory
+        variables:
+          lower_altitude: "6,000"
+          upper_altitude: "10,000"
+        change: icing_advisory
+
+  "3":
+    - weight: 1.0
+      trigger: "time:15"
+      type: abnormal
+      payload:
+        title: "Pitot Icing — Unreliable Airspeed"
+        narration_key: narration.pitot_ice_erratic
+        variables:
+          temperature: "-2°C"
+        decision_points:
+          - prompt: "Airspeed is unreliable. What's your response?"
+            options:
+              - text: "Turn on pitot heat, set known power setting for level flight, cross-check GPS groundspeed"
+                quality: best
+              - text: "Trust the airspeed indicator, it'll recover"
+                quality: dangerous
+              - text: "Declare emergency and request lower altitude"
+                quality: acceptable
+              - text: "Pitch for best glide attitude by feel"
+                quality: poor
+        coaching_key: coaching.unreliable_airspeed
+
+    - weight: 0.8
+      trigger: "time:40"
+      type: abnormal
+      payload:
+        title: "Communication Failure"
+        narration_key: narration.comm_failure
+        decision_points:
+          - prompt: "You've lost comms after being cleared for the ILS 7L. What do you do?"
+            options:
+              - text: "Squawk 7600, fly the approach as cleared, land"
+                quality: best
+              - text: "Try every frequency including 121.5, circle the airport until someone sees you"
+                quality: poor
+              - text: "Squawk 7600, fly the approach, but go missed if no light gun signal"
+                quality: acceptable
+              - text: "Turn around and go back to Gainesville where the weather is better"
+                quality: poor
+        coaching_key: coaching.lost_comms
+
+  "4":
+    - weight: 1.0
+      trigger: "time:20"
+      type: emergency
+      payload:
+        title: "Vacuum System Failure — Partial Panel"
+        narration_key: narration.vacuum_failure_night
+        checklist_id: vacuum_failure
+        decision_points:
+          - prompt: "Partial panel in night IMC. What's your scan priority?"
+            options:
+              - text: "Transition to partial panel: airspeed, turn coordinator, altimeter. Use GPS track for heading reference."
+                quality: best
+              - text: "Trust the attitude indicator, it might recover"
+                quality: dangerous
+              - text: "Declare emergency, request vectors to nearest VFR conditions"
+                quality: acceptable
+              - text: "Engage autopilot — it might still work"
+                quality: poor
+        coaching_key: coaching.vacuum_failure_night
+
+    - weight: 0.9
+      trigger: "time:55"
+      type: emergency
+      payload:
+        title: "Low Fuel Warning"
+        narration_key: narration.low_fuel_warning
+        variables:
+          left_gals: "5"
+          right_gals: "3"
+          minutes_remaining: "30"
+        decision_points:
+          - prompt: "Fuel is critical. You're being vectored for another approach. What do you do?"
+            options:
+              - text: "Declare minimum fuel to ATC, request priority handling, brief the approach"
+                quality: best
+              - text: "Don't say anything, just fly the approach quickly"
+                quality: dangerous
+              - text: "Declare emergency, request straight-in vectors"
+                quality: acceptable
+              - text: "Divert to a closer airport"
+                quality: acceptable
+        coaching_key: coaching.low_fuel

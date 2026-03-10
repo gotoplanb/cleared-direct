@@ -68,12 +68,20 @@ admin:  ## Create superuser (admin/admin)
 # ── Testing ───────────────────────────────────────────
 
 .PHONY: test
-test:  ## Run all tests
-	$(PYTHON) -m pytest tests/ -v
+test:  ## Run all tests verbose
+	.venv/bin/pytest tests/ -v
 
 .PHONY: test-fast
-test-fast:  ## Run tests without verbose output
-	$(PYTHON) -m pytest tests/
+test-fast:  ## Run tests (concise output)
+	.venv/bin/pytest tests/
+
+.PHONY: test-engine
+test-engine:  ## Run engine tests only
+	.venv/bin/pytest tests/test_engine.py -v
+
+.PHONY: test-views
+test-views:  ## Run view tests only
+	.venv/bin/pytest tests/test_views.py -v
 
 .PHONY: check
 check:  ## Django system checks

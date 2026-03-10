@@ -18,50 +18,47 @@ baseline_events:
   - trigger: "phase_change:departure"
     type: atc_instruction
     payload:
-      audio_clip_slug: cleared_for_takeoff
-      atc_text: "November 4 Uniform Tango, runway 28, cleared for takeoff. Fly heading 280, climb and maintain 3,000."
+      atc_text_key: atc.cleared_takeoff_hdg_alt
       variables:
         runway: "28"
         heading: "280"
-        altitude: "3000"
+        altitude: "3,000"
       required_response_type: text_input
       correct_readback_keywords: ["cleared", "takeoff", "runway", "28", "heading", "280", "3000"]
-      coaching_if_wrong: "Read back the runway, heading, and altitude. ATC needs to confirm you heard the clearance correctly."
+      coaching_key: coaching.readback_runway_heading_altitude_atc
 
   - trigger: "altitude_crossing:3000"
     type: atc_instruction
     payload:
-      audio_clip_slug: contact_departure
-      atc_text: "November 4 Uniform Tango, contact departure on 124.55."
+      atc_text_key: atc.contact_departure
       variables:
         frequency: "124.55"
       required_response_type: text_input
       correct_readback_keywords: ["124.55", "departure"]
-      coaching_if_wrong: "When given a frequency change, read back the new frequency so ATC knows you have it."
+      coaching_key: coaching.readback_frequency
 
   - trigger: "altitude_crossing:6000"
     type: atc_instruction
     payload:
-      audio_clip_slug: maintain_altitude
-      atc_text: "November 4 Uniform Tango, maintain 6,000. Expect ILS runway 28 approach at KOJM."
+      atc_text_key: atc.maintain_altitude_expect
       variables:
-        altitude: "6000"
-        approach: "ILS 28"
+        altitude: "6,000"
+        approach: "ILS runway 28"
+        destination: "KOJM"
       required_response_type: text_input
       correct_readback_keywords: ["maintain", "6000", "ILS", "28"]
-      coaching_if_wrong: "Read back the altitude assignment and the expected approach."
+      coaching_key: coaching.readback_altitude_approach
 
   - trigger: "waypoint:DRBIE"
     type: atc_instruction
     payload:
-      audio_clip_slug: descend_maintain
-      atc_text: "November 4 Uniform Tango, descend and maintain 3,000, expect ILS 28 approach."
+      atc_text_key: atc.descend_maintain
       variables:
-        altitude: "3000"
+        altitude: "3,000"
         approach: "ILS 28"
       required_response_type: text_input
       correct_readback_keywords: ["descend", "maintain", "3000", "ILS", "28"]
-      coaching_if_wrong: "A correct readback includes the instruction and the value. ATC needs to hear you confirm the altitude you're descending to and which approach you're expecting."
+      coaching_key: coaching.readback_descent_confirm
 
 difficulty_pools:
   "2":
@@ -69,9 +66,14 @@ difficulty_pools:
       trigger: "waypoint:DRBIE"
       type: environmental_change
       payload:
+        narration_key: narration.ceiling_drop
+        variables:
+          destination: "KOJM"
+          ceiling: "500 overcast"
+          visibility: "2"
+          conditions: "mist"
         change: ceiling_drop
         new_ceiling: 500
-        narration: "ATIS update — KOJM now reporting 500 overcast, visibility 2 in mist. Minimums just got tighter."
 
   "3":
     - weight: 0.6
@@ -79,7 +81,7 @@ difficulty_pools:
       type: abnormal
       payload:
         title: "Pitot Heat Advisory"
-        narration: "You notice a slight fluctuation in your airspeed indicator. Temperature is near freezing at this altitude."
+        narration_key: narration.pitot_ice_fluctuation
         decision_points:
           - prompt: "What's your first action?"
             options:
@@ -91,7 +93,7 @@ difficulty_pools:
                 quality: acceptable
               - text: "Ignore it, autopilot has the aircraft"
                 quality: dangerous
-        coaching_if_wrong: "Pitot icing can cause unreliable airspeed. Turning on pitot heat is the immediate correct action. No need to declare an emergency yet, but monitoring is essential."
+        coaching_key: coaching.pitot_heat
 
   "4":
     - weight: 0.8
@@ -99,7 +101,7 @@ difficulty_pools:
       type: emergency
       payload:
         title: "Vacuum System Failure"
-        narration: "Your attitude indicator starts to tumble. The vacuum annunciator illuminates. You're in solid IMC."
+        narration_key: narration.vacuum_failure
         checklist_id: vacuum_failure
         decision_points:
           - prompt: "Partial panel in IMC. What's your scan priority?"
@@ -112,4 +114,4 @@ difficulty_pools:
                 quality: acceptable
               - text: "Engage autopilot and hope for the best"
                 quality: poor
-        coaching_if_wrong: "With a vacuum failure in IMC, your attitude indicator and heading indicator are unreliable. Transition immediately to partial panel — primary instruments become airspeed, turn coordinator, and altimeter. The autopilot may still work if it's electrically driven."
+        coaching_key: coaching.vacuum_failure

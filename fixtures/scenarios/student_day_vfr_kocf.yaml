@@ -1,0 +1,57 @@
+title: "Day VFR to Ocala"
+description: "Clear day practice flight with basic ATC communications"
+aircraft: single-engine
+departure: KGNV
+destination: KOCF
+route:
+  - KGNV
+  - WALDO
+  - KOCF
+difficulty_baseline: 1
+briefing: >
+  Beautiful VFR day. You're departing KGNV runway 28 for a short cross-country
+  to Ocala (KOCF). ATIS reports clear skies, visibility 10+, winds calm.
+  Flight following is available on 124.15. Altitude 3,500 MSL.
+
+baseline_events:
+  - trigger: "phase_change:departure"
+    type: atc_instruction
+    payload:
+      atc_text_key: atc.cleared_takeoff_simple
+      variables:
+        runway: "28"
+      required_response_type: text_input
+      correct_readback_keywords: ["cleared", "takeoff", "runway", "28"]
+      coaching_key: coaching.readback_runway_clearance
+
+  - trigger: "altitude_crossing:3500"
+    type: atc_instruction
+    payload:
+      atc_text_key: atc.radar_contact
+      variables:
+        destination: "Ocala"
+        altimeter: "30.12"
+      required_response_type: text_input
+      correct_readback_keywords: ["30.12"]
+      coaching_key: coaching.readback_altimeter
+
+  - trigger: "waypoint:KOCF"
+    type: atc_instruction
+    payload:
+      atc_text_key: atc.frequency_change_approved
+      variables:
+        traffic_info: "Ocala traffic 12 o'clock, 5 miles"
+      required_response_type: text_input
+      correct_readback_keywords: ["traffic", "advisory", "frequency"]
+      coaching_key: coaching.readback_traffic
+
+difficulty_pools:
+  "1":
+    - weight: 1.0
+      trigger: "waypoint:WALDO"
+      type: atc_query
+      payload:
+        atc_text_key: atc.say_altitude
+        required_response_type: text_input
+        correct_readback_keywords: ["3500", "three thousand five hundred"]
+        coaching_key: coaching.readback_say_altitude
