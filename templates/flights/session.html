@@ -343,6 +343,7 @@ html, body { overflow: hidden; }
 .phase-controls { display: flex; gap: 0.4rem; padding: 0.4rem 0.75rem; background: #060808; border-top: 1px solid #0e1210; flex-shrink: 0; }
 .phase-btn { background: transparent; border: 1px solid #1e2422; color: #3a4440; padding: 0.25rem 0.5rem; font-family: inherit; font-size: 0.65rem; cursor: pointer; }
 .phase-btn:hover { border-color: #00d4ff; color: #00d4ff; }
+.phase-btn.active { border-color: #ffaa00; color: #ffaa00; }
 
 /* ── Cutscene Overlay ── */
 .cutscene-overlay {
@@ -690,7 +691,7 @@ html, body { overflow: hidden; }
     <!-- Phase Control Bar (dev/testing) -->
     <div class="phase-controls">
         <template x-for="p in ['preflight','taxi','departure','enroute','approach','landed']">
-            <button class="phase-btn" @click="setPhase(p)" x-text="p"></button>
+            <button class="phase-btn" :class="{ active: phase === p }" @click="setPhase(p)" x-text="p"></button>
         </template>
     </div>
 

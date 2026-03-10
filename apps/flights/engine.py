@@ -296,11 +296,12 @@ def _check_event_triggers(session: FlightSession) -> list[EventQueueItem]:
 
             # If the event requires a player response, set to awaiting
             payload = event.payload or {}
-            if (
+            needs_response = (
                 payload.get("required_response_type")
                 or payload.get("decision_points")
                 or payload.get("options")
-            ):
+            )
+            if needs_response:
                 event.status = EventStatus.AWAITING_RESPONSE
 
             event.save()
@@ -319,6 +320,11 @@ def _check_event_triggers(session: FlightSession) -> list[EventQueueItem]:
             event_log = session.event_log or []
             event_log.append(log_entry)
             session.event_log = event_log
+
+            # Stop after the first event that needs a response —
+            # subsequent events fire on later ticks after this one resolves
+            if needs_response:
+                break
 
     return fired
 

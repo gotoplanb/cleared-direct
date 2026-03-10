@@ -14,6 +14,58 @@ briefing: >
   Flight following is available on 124.15. Altitude 3,500 MSL.
 
 baseline_events:
+  # ── Preflight: ATIS → Ground → Taxi ──
+  - trigger: "phase_change:preflight"
+    type: atc_instruction
+    payload:
+      narration_key: narration.listen_atis
+      variables:
+        atis_frequency: "124.15"
+      atc_text_key: atc.atis_report
+      variables:
+        airport: "Gainesville"
+        atis_letter: "Alpha"
+        time: "1745"
+        wind: "calm"
+        visibility: "one zero"
+        sky_condition: "Sky clear"
+        temperature: "28"
+        dewpoint: "18"
+        altimeter: "30.12"
+        remarks: ""
+        runway: "28"
+      required_response_type: text_input
+      correct_readback_keywords: ["information", "alpha"]
+      coaching_key: coaching.readback_atis
+
+  - trigger: "phase_change:preflight"
+    type: atc_instruction
+    payload:
+      narration_key: narration.contact_ground_vfr
+      variables:
+        ground_frequency: "121.9"
+      atc_text_key: atc.clearance_delivery_vfr
+      variables:
+        altimeter: "30.12"
+        runway: "28"
+        altitude: "3,500"
+      required_response_type: text_input
+      correct_readback_keywords: ["runway", "28", "3500", "30.12"]
+      coaching_key: coaching.readback_taxi
+
+  # ── Taxi ──
+  - trigger: "phase_change:taxi"
+    type: atc_instruction
+    payload:
+      atc_text_key: atc.ground_taxi
+      variables:
+        runway: "28"
+        taxi_route: "Alpha"
+      required_response_type: text_input
+      correct_readback_keywords: ["runway", "28", "alpha"]
+      coaching_key: coaching.readback_taxi
+
+  # ── Departure ──
   - trigger: "phase_change:departure"
     type: atc_instruction
     payload:

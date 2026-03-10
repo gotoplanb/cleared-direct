@@ -8,6 +8,30 @@
 # ═══════════════════════════════════════════════════════════════════════════════
 
 atc:
+  atis_report:
+    text: "Información {airport} {atis_letter}. Observación {time} Zulú. Viento {wind}. Visibilidad {visibility}. {sky_condition}. Temperatura {temperature}, punto de rocío {dewpoint}. Altímetro {altimeter}. {remarks}Pista en uso {runway} para aterrizajes y despegues. Notifique en contacto inicial que tiene información {atis_letter}."
+    note: "Reporte ATIS completo"
+
+  clearance_delivery_ifr:
+    text: "Noviembre 4 Uniforme Tango, autorizado al aeropuerto de {destination} vía {route}. Ascienda y mantenga {altitude}. Espere {expect_altitude} diez minutos después del despegue. Frecuencia de salida {departure_frequency}. Transponder {squawk}."
+    note: "Autorización IFR estándar (formato CRAFT)"
+
+  clearance_delivery_vfr:
+    text: "Noviembre 4 Uniforme Tango, Gainesville tierra, altímetro {altimeter}, pista {runway}. Salida VFR aprobada, mantenga VFR a o por debajo de {altitude}."
+    note: "Aprobación de plan de vuelo VFR"
+
+  ground_taxi:
+    text: "Noviembre 4 Uniforme Tango, Gainesville tierra, ruede a pista {runway} vía {taxi_route}."
+    note: "Autorización de rodaje"
+
+  ground_hold_short:
+    text: "Noviembre 4 Uniforme Tango, ruede a pista {runway} vía {taxi_route}. Mantenga posición antes de pista {hold_short_runway}."
+    note: "Rodaje con instrucción de mantener posición"
+
+  tower_ready:
+    text: "Noviembre 4 Uniforme Tango, Gainesville torre, pista {runway}, mantenga posición."
+    note: "Contacto inicial con torre"
+
   cleared_takeoff_simple:
     text: "Noviembre 4 Uniforme Tango, pista {runway}, autorizado para despegue."
     note: "Despegue VFR simple"
@@ -98,6 +122,26 @@ atc:
 # ═══════════════════════════════════════════════════════════════════════════════
 
 narration:
+  listen_atis:
+    text: "Antes que nada, sintonice la frecuencia del ATIS para obtener la meteorología actual e información de pista. En Gainesville, el ATIS está en {atis_frequency}."
+    note: "Instrucción para obtener ATIS"
+
+  contact_clearance:
+    text: "Tiene el ATIS. Ahora sintonice autorización de vuelo en {clearance_frequency} para obtener su autorización IFR. Recuerde CRAFT: Límite de autorización, Ruta, Altitud, Frecuencia, Transponder."
+    note: "Instrucción para autorización IFR"
+
+  contact_ground_vfr:
+    text: "Es hora de llamar a tierra en {ground_frequency} y solicitar rodaje. Indique la pista y que tiene la información ATIS actual."
+    note: "Instrucción para contacto VFR con tierra"
+
+  contact_ground_ifr:
+    text: "Buena repetición. Ahora cambie a tierra en {ground_frequency} y solicite rodaje a pista {runway}."
+    note: "Instrucción para contacto IFR con tierra después de autorización"
+
+  runup_complete:
+    text: "Prueba de motores completa. Todo en orden. Cambie a torre en {tower_frequency} e indique que está listo para salida en pista {runway}."
+    note: "Transición de rodaje a torre"
+
   ceiling_drop:
     text: "Actualización ATIS — {destination} ahora reporta {ceiling}, visibilidad {visibility} en {conditions}. Los mínimos se han ajustado."
     note: "Deterioro meteorológico"
@@ -152,6 +196,18 @@ narration:
 # ═══════════════════════════════════════════════════════════════════════════════
 
 coaching:
+  readback_clearance_craft:
+    text: "Repita la autorización IFR completa usando CRAFT: Autorizado a (destino), vía (ruta), ascienda y mantenga (altitud), espere (altitud), frecuencia de salida, código de transponder. Cada elemento importa — especialmente el transponder y la frecuencia de salida."
+
+  readback_taxi:
+    text: "Repita la autorización de rodaje: número de pista y ruta de rodaje. Si hay una instrucción de mantener posición, DEBE repetirla — es obligatorio."
+
+  readback_taxi_hold_short:
+    text: "Las instrucciones de mantener posición son elementos de repetición obligatoria. Siempre repita: 'Mantengo posición antes de pista [número].' No mantener posición es una desviación del piloto."
+
+  readback_atis:
+    text: "Confirme que tiene la información ATIS indicando la letra (por ejemplo, 'Información Alfa'). Esto le dice al ATC que tiene las condiciones meteorológicas y del aeropuerto actuales."
+
   readback_runway_clearance:
     text: "Repita la pista y la autorización. Incluso en un día VFR, el ATC necesita saber que los escuchó."
 

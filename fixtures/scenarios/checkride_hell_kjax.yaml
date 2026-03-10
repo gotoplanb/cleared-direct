@@ -18,6 +18,66 @@ briefing: >
   closed. This one tests everything you know.
 
 baseline_events:
+  # ── Preflight: ATIS → Clearance → Ground ──
+  - trigger: "phase_change:preflight"
+    type: atc_instruction
+    payload:
+      narration_key: narration.listen_atis
+      variables:
+        atis_frequency: "124.15"
+      atc_text_key: atc.atis_report
+      variables:
+        airport: "Gainesville"
+        atis_letter: "Echo"
+        time: "2145"
+        wind: "zero four zero at one five gusting two two"
+        visibility: "two"
+        sky_condition: "Eight hundred overcast"
+        temperature: "18"
+        dewpoint: "17"
+        altimeter: "29.85"
+        remarks: "IFR conditions. Fog reported at destination. NOTAM runway 25 closed. "
+        runway: "28"
+      required_response_type: text_input
+      correct_readback_keywords: ["information", "echo"]
+      coaching_key: coaching.readback_atis
+
+  - trigger: "phase_change:preflight"
+    type: atc_instruction
+    payload:
+      narration_key: narration.contact_clearance
+      variables:
+        clearance_frequency: "121.4"
+      atc_text_key: atc.clearance_delivery_ifr
+      variables:
+        destination: "Jacksonville International"
+        route: "radar vectors HERMY WLKRT ADERR direct"
+        altitude: "4,000"
+        expect_altitude: "8,000"
+        departure_frequency: "124.55"
+        squawk: "6204"
+      required_response_type: text_input
+      correct_readback_keywords: ["cleared", "Jacksonville", "4000", "8000", "124.55", "6204"]
+      coaching_key: coaching.readback_clearance_craft
+
+  # ── Taxi ──
+  - trigger: "phase_change:taxi"
+    type: atc_instruction
+    payload:
+      narration_key: narration.contact_ground_ifr
+      variables:
+        ground_frequency: "121.9"
+        runway: "28"
+      atc_text_key: atc.ground_hold_short
+      variables:
+        runway: "28"
+        taxi_route: "Alpha, Bravo"
+        hold_short_runway: "10"
+      required_response_type: text_input
+      correct_readback_keywords: ["runway", "28", "alpha", "bravo", "hold short", "10"]
+      coaching_key: coaching.readback_taxi_hold_short
+
+  # ── Departure ──
   - trigger: "phase_change:departure"
     type: atc_instruction
     payload:

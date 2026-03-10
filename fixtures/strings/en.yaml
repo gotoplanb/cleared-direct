@@ -23,6 +23,32 @@
 # ═══════════════════════════════════════════════════════════════════════════════
 
 atc:
+  # ── Preflight — ATIS / Clearance / Ground ─────────────────
+
+  atis_report:
+    text: "{airport} information {atis_letter}. {time} Zulu observation. Wind {wind}. Visibility {visibility}. {sky_condition}. Temperature {temperature}, dewpoint {dewpoint}. Altimeter {altimeter}. {remarks}Landing and departing runway {runway}. Advise on initial contact you have information {atis_letter}."
+    note: "Full ATIS broadcast — long recording, deliver in standard cadence"
+
+  clearance_delivery_ifr:
+    text: "November 4 Uniform Tango is cleared to {destination} airport via {route}. Climb and maintain {altitude}. Expect {expect_altitude} ten minutes after departure. Departure frequency {departure_frequency}. Squawk {squawk}."
+    note: "Standard IFR clearance delivery (CRAFT format)"
+
+  clearance_delivery_vfr:
+    text: "November 4 Uniform Tango, Gainesville ground, altimeter {altimeter}, runway {runway}. VFR departure approved, maintain VFR at or below {altitude}."
+    note: "VFR flight plan acknowledgment / taxi clearance from ground"
+
+  ground_taxi:
+    text: "November 4 Uniform Tango, Gainesville ground, taxi to runway {runway} via {taxi_route}."
+    note: "Taxi clearance — read taxi route clearly"
+
+  ground_hold_short:
+    text: "November 4 Uniform Tango, taxi to runway {runway} via {taxi_route}. Hold short of runway {hold_short_runway}."
+    note: "Taxi with hold-short instruction — critical readback item"
+
+  tower_ready:
+    text: "November 4 Uniform Tango, Gainesville tower, runway {runway}, hold short."
+    note: "Initial contact with tower at the hold-short line"
+
   # ── Takeoff & Departure ──────────────────────────────────
 
   cleared_takeoff_simple:
@@ -132,6 +158,28 @@ atc:
 # ═══════════════════════════════════════════════════════════════════════════════
 
 narration:
+  # ── Preflight ────────────────────────────────────────────
+
+  listen_atis:
+    text: "Before anything else, tune the ATIS frequency to get the current weather and runway information. At Gainesville, ATIS is on {atis_frequency}."
+    note: "Instructor prompt to get ATIS"
+
+  contact_clearance:
+    text: "You have the ATIS. Now tune clearance delivery on {clearance_frequency} to pick up your IFR clearance. Remember CRAFT: Clearance limit, Route, Altitude, Frequency, Transponder."
+    note: "Instructor prompt for IFR clearance"
+
+  contact_ground_vfr:
+    text: "Time to call ground on {ground_frequency} and request taxi. Tell them the runway and that you have the current ATIS information."
+    note: "Instructor prompt for VFR ground contact"
+
+  contact_ground_ifr:
+    text: "Good readback. Now switch to ground on {ground_frequency} and request taxi to runway {runway}."
+    note: "Instructor prompt for IFR ground contact after clearance"
+
+  runup_complete:
+    text: "Run-up is complete. Everything checks out. Switch to tower on {tower_frequency} and let them know you're ready for departure at runway {runway}."
+    note: "Transition from taxi/run-up to tower"
+
   # ── Environmental ───────────────────────────────────────
 
   ceiling_drop:
@@ -193,6 +241,20 @@ narration:
 # ═══════════════════════════════════════════════════════════════════════════════
 
 coaching:
+  # ── Preflight coaching ───────────────────────────────────
+
+  readback_clearance_craft:
+    text: "Read back the full IFR clearance using CRAFT: Cleared to (destination), via (route), climb and maintain (altitude), expect (altitude), departure frequency, squawk code. Every element matters — especially the squawk and departure frequency."
+
+  readback_taxi:
+    text: "Read back the taxi clearance: runway number and taxi route. If there's a hold-short instruction, you MUST read it back — it's regulatory."
+
+  readback_taxi_hold_short:
+    text: "Hold-short instructions are mandatory readback items. Always read back: 'Hold short of runway [number].' Failing to hold short is a pilot deviation."
+
+  readback_atis:
+    text: "Confirm you have the ATIS information by stating the ATIS letter (e.g., 'Information Alpha'). This tells ATC you have current weather and airport conditions."
+
   # ── Readback coaching ───────────────────────────────────
 
   readback_runway_clearance:

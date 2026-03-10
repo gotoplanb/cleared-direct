@@ -27,7 +27,7 @@ class TestIndexView:
     def test_index_returns_200(self, client, scenario):
         resp = client.get("/")
         assert resp.status_code == 200
-        assert b"IFR Trainer" in resp.content
+        assert b"CLEARED DIRECT" in resp.content
 
 
 class TestStartSession:
