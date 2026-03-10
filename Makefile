@@ -83,6 +83,10 @@ test-engine:  ## Run engine tests only
 test-views:  ## Run view tests only
 	.venv/bin/pytest tests/test_views.py -v
 
+.PHONY: test-e2e
+test-e2e:  ## Run e2e scenario tests
+	.venv/bin/pytest tests/test_e2e_scenarios.py -v
+
 .PHONY: check
 check:  ## Django system checks
 	$(PYTHON) manage.py check
